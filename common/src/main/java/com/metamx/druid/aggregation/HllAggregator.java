@@ -65,7 +65,7 @@ public class HllAggregator implements Aggregator {
 	public void aggregate() {
 
 		Object value =  selector.get();
-		log.info("class name:"+value.getClass()+":value "+value);
+//		log.info("class name:"+value.getClass()+":value "+value);
 		if (value instanceof TIntByteHashMap) {
 			TIntByteHashMap newIbMap = (TIntByteHashMap) value;
 			int[] indexes = newIbMap.keys();
@@ -77,7 +77,7 @@ public class HllAggregator implements Aggregator {
 				}
 			}
 		} else {
-			log.info("value "+ selector.get() );
+//			log.info("value "+ selector.get() );
 			long id = Hashing
 					.murmur3_128()
 					.hashString((String) (selector.get()))

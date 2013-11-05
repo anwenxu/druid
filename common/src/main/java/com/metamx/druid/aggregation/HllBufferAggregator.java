@@ -1,14 +1,17 @@
 package com.metamx.druid.aggregation;
 
+import com.google.common.hash.Hashing;
 import com.metamx.druid.processing.ObjectColumnSelector;
 
 import java.nio.ByteBuffer;
+
 import gnu.trove.map.hash.TIntByteHashMap;
 import gnu.trove.procedure.TIntByteProcedure;
 
 public class HllBufferAggregator implements BufferAggregator {
 
 	private final ObjectColumnSelector selector;
+
 	public HllBufferAggregator(ObjectColumnSelector selector) {
 		this.selector = selector;
 	}
@@ -26,17 +29,32 @@ public class HllBufferAggregator implements BufferAggregator {
 
 	@Override
 	public void aggregate(ByteBuffer buf, int position) {
-		final ByteBuffer fb = buf;
-		final int fp = position;
-		TIntByteHashMap newobj = (TIntByteHashMap) (selector.get());
-		newobj.forEachEntry(new TIntByteProcedure() {
-			public boolean execute(int a, byte b) {
-				if (b > fb.get(fp + a)) {
-					fb.put(fp + a, b);
-				}
-				return true;
+		if (selector.get() instanceof String) {
+			long id = Hashing
+					.murmur3_128()
+					.hashString((String) (selector.get()))
+					.asLong();
+
+			final int bucket = (int) (id >>> (Long.SIZE - HllAggregator.log2m));
+			final int zerolength = Long.numberOfLeadingZeros((id << HllAggregator.log2m)
+					| (1 << (HllAggregator.log2m - 1)) + 1) + 1;
+
+			if (zerolength > buf.get(position + bucket)) {
+				buf.put(position + bucket, (byte) zerolength);
 			}
-		});
+		} else {
+			final ByteBuffer fb = buf;
+			final int fp = position;
+			TIntByteHashMap newobj = (TIntByteHashMap) (selector.get());
+			newobj.forEachEntry(new TIntByteProcedure() {
+				public boolean execute(int a, byte b) {
+					if (b > fb.get(fp + a)) {
+						fb.put(fp + a, b);
+					}
+					return true;
+				}
+			});
+		}
 	}
 
 	@Override
