@@ -30,15 +30,8 @@ public class HllBufferAggregator implements BufferAggregator {
 	@Override
 	public void aggregate(ByteBuffer buf, int position) {
 		if (selector.get() instanceof String) {
-			long id = Hashing
-					.murmur3_128()
-					.hashString((String) (selector.get()))
-					.asLong();
-
-			final int bucket = (int) (id >>> (Long.SIZE - HllAggregator.log2m));
-			final int zerolength = Long.numberOfLeadingZeros((id << HllAggregator.log2m)
-					| (1 << (HllAggregator.log2m - 1)) + 1) + 1;
-
+			final int bucket = HllAggregator.hashInput((String) (selector.get()))[0];
+			final int zerolength = HllAggregator.hashInput((String) (selector.get()))[1];
 			if (zerolength > buf.get(position + bucket)) {
 				buf.put(position + bucket, (byte) zerolength);
 			}

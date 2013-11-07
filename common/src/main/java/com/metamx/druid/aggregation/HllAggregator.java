@@ -54,6 +54,21 @@ public class HllAggregator implements Aggregator {
 		}
 		return newIbMap;
 	}
+	/*
+	 * result[0] for hash bucket of the input string
+	 * result[1] for zero length of the input string
+	 */
+	public static int[] hashInput(String input){
+		long id = Hashing
+				.murmur3_128()
+				.hashString(input)
+				.asLong();
+		final int[] result = new int[2];
+		result[0] = (int) (id >>> (Long.SIZE - log2m));
+		result[1] = Long.numberOfLeadingZeros((id << log2m)
+				| (1 << (log2m - 1)) + 1) + 1;
+		return result;
+	}
 
 	public HllAggregator(String name, ComplexMetricSelector selector) {
 		this.name = name;
@@ -77,15 +92,8 @@ public class HllAggregator implements Aggregator {
 				}
 			}
 		} else {
-//			log.info("value "+ selector.get() );
-			long id = Hashing
-					.murmur3_128()
-					.hashString((String) (selector.get()))
-					.asLong();
-
-			final int bucket = (int) (id >>> (Long.SIZE - log2m));
-			final int zerolength = Long.numberOfLeadingZeros((id << log2m)
-					| (1 << (log2m - 1)) + 1) + 1;
+			final int bucket = hashInput((String) (selector.get()))[0];
+			final int zerolength = hashInput((String) (selector.get()))[1];
 
 			if (ibMap.get(bucket) == ibMap.getNoEntryValue()
 					|| ibMap.get(bucket) < (byte) zerolength)
