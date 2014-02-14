@@ -20,8 +20,11 @@
 package com.metamx.druid.index;
 
 import com.metamx.common.io.smoosh.SmooshedFileMapper;
+import com.metamx.common.logger.Logger;
+import com.metamx.druid.aggregation.FrequencyCapAggregatorFactory;
 import com.metamx.druid.index.column.Column;
 import com.metamx.druid.kv.Indexed;
+
 import org.joda.time.Interval;
 
 import java.io.IOException;
@@ -37,7 +40,7 @@ public class SimpleQueryableIndex implements QueryableIndex
   private final Column timeColumn;
   private final Map<String, Column> otherColumns;
   private final SmooshedFileMapper fileMapper;
-
+  private static final Logger log = new Logger(SimpleQueryableIndex.class);
   public SimpleQueryableIndex(
       Interval dataInterval,
       Indexed<String> columnNames,
@@ -88,6 +91,7 @@ public class SimpleQueryableIndex implements QueryableIndex
   @Override
   public Column getColumn(String columnName)
   {
+//	  log.info("map columns:"+otherColumns);
     return otherColumns.get(columnName);
   }
 

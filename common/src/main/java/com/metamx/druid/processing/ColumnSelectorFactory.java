@@ -24,6 +24,7 @@ package com.metamx.druid.processing;
  */
 public interface ColumnSelectorFactory
 {
+  public TimestampColumnSelector makeTimestampColumnSelector();
   public FloatMetricSelector makeFloatMetricSelector(String metricName);
   public ComplexMetricSelector makeComplexMetricSelector(String metricName);
   public ObjectColumnSelector makeObjectColumnSelector(String columnName);

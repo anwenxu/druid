@@ -545,16 +545,19 @@ public class HadoopDruidIndexerConfig
   {
     final Optional<Interval> timeBucket = getGranularitySpec().bucketInterval(new DateTime(inputRow.getTimestampFromEpoch()));
     if (!timeBucket.isPresent()) {
+    	log.info("time bucket not present");
       return Optional.absent();
     }
-
+    log.info("shardspec" + shardSpecs);
     final List<HadoopyShardSpec> shards = shardSpecs.get(timeBucket.get().getStart());
+    log.info("shards" + shards);
     if (shards == null || shards.isEmpty()) {
       return Optional.absent();
     }
 
     for (final HadoopyShardSpec hadoopyShardSpec : shards) {
       final ShardSpec actualSpec = hadoopyShardSpec.getActualSpec();
+      log.info("actualSpec" + actualSpec);
       if (actualSpec.isInChunk(inputRow)) {
         return Optional.of(
             new Bucket(

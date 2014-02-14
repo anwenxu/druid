@@ -28,9 +28,11 @@ import com.metamx.collections.spatial.ImmutableRTree;
 import com.metamx.common.collect.MoreIterators;
 import com.metamx.common.guava.FunctionalIterable;
 import com.metamx.common.guava.FunctionalIterator;
+import com.metamx.common.logger.Logger;
 import com.metamx.druid.BaseStorageAdapter;
 import com.metamx.druid.Capabilities;
 import com.metamx.druid.QueryGranularity;
+import com.metamx.druid.aggregation.FrequencyCapAggregatorFactory;
 import com.metamx.druid.index.QueryableIndex;
 import com.metamx.druid.index.brita.BitmapIndexSelector;
 import com.metamx.druid.index.brita.Filter;
@@ -51,7 +53,10 @@ import com.metamx.druid.kv.SingleIndexedInts;
 import com.metamx.druid.processing.ComplexMetricSelector;
 import com.metamx.druid.processing.FloatMetricSelector;
 import com.metamx.druid.processing.ObjectColumnSelector;
+import com.metamx.druid.processing.TimestampColumnSelector;
+
 import it.uniroma3.mat.extendedset.intset.ImmutableConciseSet;
+
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
@@ -64,7 +69,7 @@ import java.util.Map;
 public class QueryableIndexStorageAdapter extends BaseStorageAdapter
 {
   private final QueryableIndex index;
-
+  private static final Logger log = new Logger(QueryableIndexStorageAdapter.class);
   public QueryableIndexStorageAdapter(
       QueryableIndex index
   )
@@ -452,10 +457,15 @@ public class QueryableIndexStorageAdapter extends BaseStorageAdapter
                     {
                       final String metricName = metric.toLowerCase();
                       ComplexColumn cachedMetricVals = complexColumnCache.get(metricName);
-
+                      log.info("111111metric name:"+metricName);
                       if (cachedMetricVals == null) {
                         Column holder = index.getColumn(metricName);
+                        if(holder != null)
+                        log.info("metric name:"+metricName+"   holder:"+holder +"  type:"+holder.getCapabilities().getType());
+                        else
+                        	 log.info("metric name:"+metricName+"   holder:"+holder);
                         if (holder != null && holder.getCapabilities().getType() == ValueType.COMPLEX) {
+                        	
                           cachedMetricVals = holder.getComplexColumn();
                           complexColumnCache.put(metricName, cachedMetricVals);
                         }
@@ -604,6 +614,19 @@ public class QueryableIndexStorageAdapter extends BaseStorageAdapter
                         public Object get()
                         {
                           return columnVals.getRowValue(cursorOffset.getOffset());
+                        }
+                      };
+                    }
+
+                    @Override
+                    public TimestampColumnSelector makeTimestampColumnSelector()
+                    {
+                      return new TimestampColumnSelector()
+                      {
+                        @Override
+                        public long getTimestamp()
+                        {
+                          return timestamps.getLongSingleValueRow(cursorOffset.getOffset());
                         }
                       };
                     }
@@ -871,9 +894,15 @@ public class QueryableIndexStorageAdapter extends BaseStorageAdapter
                     {
                       final String metricName = metric.toLowerCase();
                       ComplexColumn cachedMetricVals = complexColumnCache.get(metricName);
-
+                      log.info("111111metric name:"+metricName);
                       if (cachedMetricVals == null) {
+                    	  
                         Column holder = index.getColumn(metricName);
+                        if(holder != null)
+                            log.info("metric name:"+metricName+"   holder:"+holder +"  type:"+holder.getCapabilities().getType());
+                            else
+                            	 log.info("metric name:"+metricName+"   holder:"+holder);
+                         
                         if (holder != null && holder.getCapabilities().getType() == ValueType.COMPLEX) {
                           cachedMetricVals = holder.getComplexColumn();
                           complexColumnCache.put(metricName, cachedMetricVals);
@@ -1022,6 +1051,19 @@ public class QueryableIndexStorageAdapter extends BaseStorageAdapter
                         public Object get()
                         {
                           return columnVals.getRowValue(currRow);
+                        }
+                      };
+                    }
+
+                    @Override
+                    public TimestampColumnSelector makeTimestampColumnSelector()
+                    {
+                      return new TimestampColumnSelector()
+                      {
+                        @Override
+                        public long getTimestamp()
+                        {
+                          return timestamps.getLongSingleValueRow(currRow);
                         }
                       };
                     }

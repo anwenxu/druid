@@ -42,6 +42,7 @@ import com.metamx.druid.index.v1.IndexMerger;
 import com.metamx.druid.indexer.data.StringInputRowParser;
 import com.metamx.druid.indexer.rollup.DataRollupSpec;
 import com.metamx.druid.input.InputRow;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -78,6 +79,7 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import com.metamx.druid.index.serde.FreCapComplexMetricSerde;
 import com.metamx.druid.index.serde.HLLComplexMericSerde;
 
 /**
@@ -252,6 +254,7 @@ public class IndexGeneratorJob implements Jobby {
 		protected void reduce(BytesWritable key, Iterable<Text> values,
 				final Context context) throws IOException, InterruptedException {
 			HLLComplexMericSerde.registerHllSerde();
+			FreCapComplexMetricSerde.registerFreCapSerde();
 			SortableBytes keyBytes = SortableBytes.fromBytesWritable(key);
 			Bucket bucket = Bucket.fromGroupKey(keyBytes.getGroupKey()).lhs;
 

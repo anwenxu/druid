@@ -53,7 +53,9 @@ public abstract class QueryGranularity
   public static final QueryGranularity HOUR   = fromString("HOUR");
   public static final QueryGranularity DAY    = fromString("DAY");
   public static final QueryGranularity SECOND = fromString("SECOND");
-
+  public static final QueryGranularity WEEK = fromString("WEEK");
+  public static final QueryGranularity MONTH = fromString("MONTH");
+  
   @JsonCreator
   public static QueryGranularity fromString(String str)
   {
@@ -76,7 +78,10 @@ public abstract class QueryGranularity
     FIFTEEN_MINUTE (15 *   60 * 1000),
     THIRTY_MINUTE  (30 *   60 * 1000),
     HOUR           (     3600 * 1000),
-    DAY            (24 * 3600 * 1000);
+    DAY            (24 * 3600 * 1000),
+    WEEK            (7*24 * 3600 * 1000),
+    MONTH            (30*24 * 3600 * 1000);
+    
 
     private final long millis;
     MillisIn(final long millis) { this.millis = millis; }

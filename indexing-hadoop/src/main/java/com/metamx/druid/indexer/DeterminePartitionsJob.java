@@ -562,7 +562,9 @@ public class DeterminePartitionsJob implements Jobby
       // First DVC should be the total row count indicator
       final DimValueCount firstDvc = iterator.next();
       final int totalRows = firstDvc.numRows;
-
+      log.info(
+              "before throw"
+          );
       if(!firstDvc.dim.equals("") || !firstDvc.value.equals("")) {
         throw new IllegalStateException("WTF?! Expected total row indicator on first k/v pair!");
       }
@@ -575,7 +577,16 @@ public class DeterminePartitionsJob implements Jobby
 
       // We'll store possible partitions in here
       final Map<String, DimPartitions> dimPartitionss = Maps.newHashMap();
-
+      log.info(
+              "firts dvc:"+firstDvc.dim+"  value:"+firstDvc.value
+//              currentDimPartitions.partitions.size(),
+//              currentDimPartitions.getCardinality()
+          );
+      log.info(
+              "IN dim"
+//              currentDimPartitions.partitions.size(),
+//              currentDimPartitions.getCardinality()
+          );
       while(iterator.hasNext()) {
         final DimValueCount dvc = iterator.next();
 
@@ -618,19 +629,30 @@ public class DeterminePartitionsJob implements Jobby
           currentDimPartition = new DimPartition();
           currentDimPartitionStart = dvc.value;
         }
-
+        log.info("current part:"+currentDimPartitions.partitions);
         // Update counters
         currentDimPartition.cardinality ++;
         currentDimPartition.rows += dvc.numRows;
-
+//        log.info(
+//                "IN dimension[%s]: %",
+//                currentDimPartitions.dim
+////                currentDimPartitions.partitions.size(),
+////                currentDimPartitions.getCardinality()
+//            );
         if(!iterator.hasNext() || !currentDimPartitions.dim.equals(iterator.peek().dim)) {
           // Finalize the current dimension
-
+//        	log.info(
+//                    "Inside equal dimension[%s]: %",
+//                    currentDimPartitions.dim
+//                    currentDimPartitions.partitions.size(),
+//                    currentDimPartitions.getCardinality()
+//                );
           if(currentDimPartition.rows > 0) {
             // One more shard to go
             final ShardSpec shardSpec;
 
             if (currentDimPartitions.partitions.isEmpty()) {
+            	log.info("enter nonshard");
               shardSpec = new NoneShardSpec();
             } else {
               if(currentDimPartition.rows < config.getTargetPartitionSize() * SHARD_COMBINE_THRESHOLD) {

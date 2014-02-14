@@ -39,15 +39,23 @@ import com.google.common.base.Throwables;
 import com.metamx.common.Granularity;
 import com.metamx.common.guava.Accumulator;
 import com.metamx.common.guava.Sequence;
+import com.metamx.common.logger.Logger;
+import com.metamx.druid.aggregation.FrequencyCap;
+import com.metamx.druid.aggregation.FrequencyCapAggregatorFactory;
 
 import org.joda.time.DateTimeZone;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.ShortBuffer;
+import java.util.Arrays;
 import java.util.TimeZone;
 
 import gnu.trove.map.hash.TIntByteHashMap;
+import gnu.trove.map.hash.TIntShortHashMap;
+
 import org.apache.commons.codec.binary.Base64;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -56,7 +64,7 @@ public class DefaultObjectMapper extends ObjectMapper {
 	public DefaultObjectMapper() {
 		this(null);
 	}
-
+	private static final Logger log = new Logger(DefaultObjectMapper.class);
 	public DefaultObjectMapper(JsonFactory factory) {
 		super(factory);
 		SimpleModule serializerModule = new SimpleModule(
@@ -180,6 +188,50 @@ public class DefaultObjectMapper extends ObjectMapper {
 						}
 
 						buffer.put(valueResult);
+						buffer.flip();
+						buffer.get(result);
+						String str = Base64.encodeBase64String(result);
+						jsonGenerator.writeString(str);
+					}
+				});
+		
+		serializerModule.addSerializer(FrequencyCap.class,
+				new JsonSerializer<FrequencyCap>() {
+					@Override
+					public void serialize(FrequencyCap freCap,
+							JsonGenerator jsonGenerator,
+							SerializerProvider serializerProvider)
+							throws IOException, JsonProcessingException {
+						
+						String str = Base64.encodeBase64String(freCap.toByte());
+//						log.info("base64 encode"+str);
+						jsonGenerator.writeString(str);
+					}
+				});
+		
+		
+		serializerModule.addSerializer(TIntShortHashMap.class,
+				new JsonSerializer<TIntShortHashMap>() {
+					@Override
+					public void serialize(TIntShortHashMap ibmap,
+							JsonGenerator jsonGenerator,
+							SerializerProvider serializerProvider)
+							throws IOException, JsonProcessingException {
+						int[] indexesResult = ibmap.keys();
+						short[] valueResult = ibmap.values();
+						ByteBuffer buffer = ByteBuffer
+								.allocate(4 * indexesResult.length
+										+ valueResult.length*2 + 8);
+						byte[] result = new byte[4 * indexesResult.length
+								+ 2*valueResult.length + 8];
+						buffer.putInt((int) indexesResult.length);
+						buffer.putInt((int) valueResult.length);
+						for (int i = 0; i < indexesResult.length; i++) {
+							buffer.putInt(indexesResult[i]);
+						}
+						for(int i=0;i<valueResult.length;i++){
+						  buffer.putShort(valueResult[i]);
+						}
 						buffer.flip();
 						buffer.get(result);
 						String str = Base64.encodeBase64String(result);

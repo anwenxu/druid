@@ -24,7 +24,9 @@ import com.metamx.common.Pair;
 import com.metamx.common.lifecycle.Lifecycle;
 import com.metamx.common.logger.Logger;
 import com.metamx.druid.index.v1.serde.ComplexMetrics;
+import com.metamx.druid.index.serde.FreCapComplexMetricSerde;
 import com.metamx.druid.index.serde.HLLComplexMericSerde;
+
 import java.util.List;
 
 /**
@@ -47,6 +49,7 @@ public class HadoopDruidIndexerMain
     Lifecycle lifecycle = new Lifecycle();
     lifecycle.addManagedInstance(node);
     HLLComplexMericSerde.registerHllSerde();
+    FreCapComplexMetricSerde.registerFreCapSerde();
     try {
       lifecycle.start();
     }

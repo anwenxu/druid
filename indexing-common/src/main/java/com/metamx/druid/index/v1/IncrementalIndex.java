@@ -47,10 +47,13 @@ import com.metamx.druid.processing.ColumnSelectorFactory;
 import com.metamx.druid.processing.ComplexMetricSelector;
 import com.metamx.druid.processing.FloatMetricSelector;
 import com.metamx.druid.processing.ObjectColumnSelector;
+import com.metamx.druid.processing.TimestampColumnSelector;
+
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
 import javax.annotation.Nullable;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -283,6 +286,19 @@ public class IncrementalIndex implements Iterable<Row>
                   public Object get()
                   {
                     return extractor.extractValue(in, columnName);
+                  }
+                };
+              }
+
+              @Override
+              public TimestampColumnSelector makeTimestampColumnSelector()
+              {
+                return new TimestampColumnSelector()
+                {
+                  @Override
+                  public long getTimestamp()
+                  {
+                    return in.getTimestampFromEpoch();
                   }
                 };
               }

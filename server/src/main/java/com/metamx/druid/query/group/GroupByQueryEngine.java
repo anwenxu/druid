@@ -45,10 +45,13 @@ import com.metamx.druid.index.v1.processing.DimensionSelector;
 import com.metamx.druid.input.MapBasedRow;
 import com.metamx.druid.input.Row;
 import com.metamx.druid.query.dimension.DimensionSpec;
+
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
+import org.mortbay.log.Log;
 
 import javax.annotation.Nullable;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
