@@ -1,6 +1,10 @@
 package com.metamx.druid.aggregation;
 
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import gnu.trove.map.hash.TIntByteHashMap;
 import gnu.trove.map.hash.TIntShortHashMap;
@@ -22,15 +26,15 @@ public class FrequencyCapAggregator implements Aggregator {
 	private final ObjectColumnSelector uuhllSelector;
 	private final String type;
 	private final short fre;
-	private FrequencyCap fCap;
+	private FrequencyCap fCap = new FrequencyCap();
 	private long lastUid= 0;
 	private int lastTimeKey = 0;
-	private int currentValue = 0;
+	private int[] currentValue = new int[FrequencyCapAggregatorFactory.BUCKET_SIZE];
+	private Set<Long> idmap = new HashSet<Long>();
 
 	public FrequencyCapAggregator(String name,
 	        ComplexMetricSelector complexMetricSelector) {
 		this.name = name;
-		fCap = new FrequencyCap();
 		selector = complexMetricSelector;
 		this.uidSelector = null;
 		this.timestampSelector = null;
@@ -47,7 +51,6 @@ public class FrequencyCapAggregator implements Aggregator {
 	        ObjectColumnSelector count, ObjectColumnSelector uuhll,
 	        String type, short fre) {
 		this.name = name;
-		fCap = new FrequencyCap();
 		selector = null;
 		this.uidSelector = uidSelector;
 		this.timestampSelector = timestamp;
@@ -77,6 +80,7 @@ public class FrequencyCapAggregator implements Aggregator {
 			
 			for (int i = bucketId; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
 				aggHll(fCap, i, hllObj);
+				
 			}
 			
 			
@@ -94,24 +98,33 @@ public class FrequencyCapAggregator implements Aggregator {
 					timeKey = cal.get(Calendar.WEEK_OF_YEAR);
 				if (type.equals("month"))
 					timeKey = cal.get(Calendar.MONTH);
-				if (lastUid != uid || lastTimeKey != timeKey) {
+				if (!idmap.contains(uid) || lastTimeKey != timeKey) {
+					if(!idmap.contains(uid))
+						idmap.add(uid);
+					for (int i = 0; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
+						currentValue[i] = 0;
+					}
 					lastUid = uid;
 					lastTimeKey = timeKey;
-					currentValue = 0;
 				}
 				
-				long finalValue = 0;
+				
 
-				if ((long) currentValue + count > fre) {
-					if (fre - currentValue > 0) {
-						finalValue = fre - currentValue;
-						currentValue = fre;
-					}
-				} else {
-					finalValue = count;
-					currentValue += count;
-				}
+			
 				for (int i = bucketId; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
+					long finalValue = 0;
+					
+					if ((long)currentValue[i] + count > fre) {
+						if (fre - currentValue[i] > 0) {
+							finalValue = fre - currentValue[i];
+							currentValue[i] = fre;
+						}
+					} else {
+						finalValue = count;
+						currentValue[i] += count;
+					}
+					
+					
 					fCap.setCount(i, fCap.getBucketCount(i)+finalValue);
 				}
 			}
@@ -123,8 +136,13 @@ public class FrequencyCapAggregator implements Aggregator {
 
 	private void aggHll(FrequencyCap fCap, int index, TIntByteHashMap hllObj) {
 		int[] indexes = hllObj.keys();
+		if(fCap.getBucketHLL(index) == null){
+			fCap.setHll(index, new TIntByteHashMap());
+		}
 		for (int i = 0; i < indexes.length; i++) {
 			int index_i = indexes[i];
+			
+			
 			if (fCap.getBucketHLL(index).get(index_i) == fCap.getBucketHLL(index).getNoEntryValue()
 					|| hllObj.get(index_i) > fCap.getBucketHLL(index).get(index_i)) {
 				fCap.getBucketHLL(index).put(index_i, hllObj.get(index_i));

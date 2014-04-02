@@ -7,6 +7,8 @@ import gnu.trove.procedure.TIntByteProcedure;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.google.common.hash.Hashing;
 import com.metamx.common.logger.Logger;
@@ -23,9 +25,10 @@ public class FrequencyCapBufferAggregator implements BufferAggregator {
 	private final ObjectColumnSelector uuhllSelector;
 	private final String type;
 	private final short fre;
+	private int idcount=0;
 	private static final Logger log = new Logger(
 	        FrequencyCapBufferAggregator.class);
-
+	private Set<Long> idmap = new HashSet<Long>();
 	// public static final int bucketSize = (int) Math.pow(2, 22);
 
 	public FrequencyCapBufferAggregator(ObjectColumnSelector uidSelector,
@@ -122,7 +125,7 @@ public class FrequencyCapBufferAggregator implements BufferAggregator {
 		int currentPos = position;
 		int currentValue = 0;
 		long lastUid = 0;
-		int lastTimeKey = 0;
+		int lastTimeKey = -1;
 
 		// if (!type.equals("none")) {
 		lastUid = buf.getLong(currentPos);
@@ -163,7 +166,7 @@ public class FrequencyCapBufferAggregator implements BufferAggregator {
 				        buf.getLong(currentPos + i * Long.SIZE / 8) + count);
 			}
 		} else {
-			int timeKey = 0;
+			int timeKey = -1;
 			boolean isNewUser = false;
 			Calendar cal = Calendar.getInstance();
 			cal.setTimeInMillis((timestamp));
@@ -173,21 +176,33 @@ public class FrequencyCapBufferAggregator implements BufferAggregator {
 				timeKey = cal.get(Calendar.WEEK_OF_YEAR);
 			if (type.equals("month"))
 				timeKey = cal.get(Calendar.MONTH);
-			if (lastUid != uid || lastTimeKey != timeKey) {
-				// log.info("1111 uid:" + uid + "lastuid:"
-				// +
-				// lastUid+"lastTimeKey"+lastTimeKey+"timeKey"+timeKey);
+			if (!idmap.contains(uid) || lastTimeKey != timeKey) {
+				if(!idmap.contains(uid))
+					idmap.add(uid);
+//				if(lastTimeKey != timeKey)
+//				 log.info("1111 uid:" + uid + "lastuid:"
+//				 +
+//				 lastUid+"lastTimeKey"+lastTimeKey+"timeKey"+timeKey);
 				buf.putLong(position, uid);
 				buf.putInt(position + Long.SIZE / 8, timeKey);
 				currentValue = 0;
 				isNewUser = true;
-			}
-			long finalValue = 0;
-			for (int i = bucketId; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
-				if (!isNewUser) {
-					currentValue = buf.getInt(position + Long.SIZE / 8
-					        + (i + 1) * Integer.SIZE / 8);
+				for (int i = 0; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
+					 buf.putInt(position + Long.SIZE / 8
+						        + (i + 1) * Integer.SIZE / 8, 0);
 				}
+			}
+//			if(!idmap.contains(uid)){
+//				idmap.add(uid);
+//				idcount++;
+//			}
+//			
+//			log.info("idcount:"+idcount);
+			
+			for (int i = bucketId; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
+				long finalValue = 0;
+				currentValue = buf.getInt(position + Long.SIZE / 8
+					        + (i + 1) * Integer.SIZE / 8);
 				if ((long) currentValue + count > fre) {
 
 					if (fre - currentValue > 0) {

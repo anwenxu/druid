@@ -5,14 +5,18 @@ import gnu.trove.map.hash.TIntByteHashMap;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import com.metamx.common.logger.Logger;
+
 public class FrequencyCap extends Object{
 	private TIntByteHashMap[] bucketHLL;
 	private long[] impressionCount;
 	private long[] hllFinal;
-
+	private static final Logger log = new Logger(
+			FrequencyCap.class);
 	public FrequencyCap() {
 		bucketHLL = new TIntByteHashMap[FrequencyCapAggregatorFactory.BUCKET_SIZE];
 		impressionCount = new long[FrequencyCapAggregatorFactory.BUCKET_SIZE];
+		hllFinal = new long[FrequencyCapAggregatorFactory.BUCKET_SIZE];
 	}
 
 	public FrequencyCap(ByteBuffer buffer) {
@@ -52,24 +56,33 @@ public class FrequencyCap extends Object{
 		ByteBuffer buffer = ByteBuffer.allocate(4 * 1024 * 1024);
 		int byteNum = 0;
 		for (int i = 0; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
-			int[] indexesResult = bucketHLL[i].keys();
-			byte[] valueResult = bucketHLL[i].values();
-
-			buffer.putInt((int) indexesResult.length);
-			buffer.putInt((int) valueResult.length);
-			for (int j = 0; j < indexesResult.length; j++) {
-				buffer.putInt(indexesResult[j]);
+			if(bucketHLL[i]!=null){
+				int[] indexesResult = bucketHLL[i].keys();
+				byte[] valueResult = bucketHLL[i].values();
+	
+				buffer.putInt((int) indexesResult.length);
+				buffer.putInt((int) valueResult.length);
+				for (int j = 0; j < indexesResult.length; j++) {
+					buffer.putInt(indexesResult[j]);
+				}
+				for (int j = 0; j < valueResult.length; j++) {
+					buffer.put(valueResult[j]);
+				}
+				byteNum += 4 * indexesResult.length + valueResult.length + 8;
+			}else{
+				buffer.putInt((int) 0);
+				buffer.putInt((int) 0);
+				byteNum += 8;
 			}
-			for (int j = 0; j < valueResult.length; j++) {
-				buffer.put(valueResult[j]);
-			}
-			byteNum += 4 * indexesResult.length + valueResult.length + 8;
 		}
-
+//		HllAggregatorFactory hf = new HllAggregatorFactory("aaa","bbbb");
+//		log.info("hll result"+ hf.finalizeComputation(bucketHLL[FrequencyCapAggregatorFactory.BUCKET_SIZE-1]));
 		for (int i = 0; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
 			buffer.putLong(impressionCount[i]);
 			byteNum += 8;
 		}
+//		log.info("countFinal"+impressionCount[FrequencyCapAggregatorFactory.BUCKET_SIZE-1]);
+		
 		byte[] result = new byte[byteNum];
 		buffer.flip();
 		buffer.get(result);
@@ -108,7 +121,6 @@ public class FrequencyCap extends Object{
 	}
 
 	private void calculateHllFinal() {
-		hllFinal = new long[FrequencyCapAggregatorFactory.BUCKET_SIZE];
 		for (int i = 0; i < FrequencyCapAggregatorFactory.BUCKET_SIZE; i++) {
 			TIntByteHashMap ibMap = bucketHLL[i];
 			int[] keys = ibMap.keys();
