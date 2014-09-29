@@ -29,6 +29,7 @@ import com.metamx.common.lifecycle.LifecycleStart;
 import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.parsers.ParseException;
 import com.metamx.emitter.EmittingLogger;
+
 import io.druid.data.input.Firehose;
 import io.druid.data.input.InputRow;
 import io.druid.query.FinalizeResultsQueryRunner;
@@ -53,6 +54,8 @@ import org.joda.time.Period;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -219,6 +222,7 @@ public class RealtimeManager implements QuerySegmentWalker
       synchronized (this) {
         if (plumber == null) {
           log.info("Someone get us a plumber!");
+          fireDepartment.getDataSchema().setFirehose(firehose);
           plumber = fireDepartment.findPlumber();
           log.info("We have our plumber!");
         } else {
@@ -247,6 +251,28 @@ public class RealtimeManager implements QuerySegmentWalker
         firehose = initFirehose();
 
         long nextFlush = new DateTime().plus(intermediatePersistPeriod).getMillis();
+
+        boolean hasMethod = false;
+        Method commitOffset = null;
+        Method getCurrentOffset = null;
+        Method[] methods = firehose.getClass().getMethods();
+        for (Method m : methods) {
+          if (m.getName().equals("getCurrentOffset")) {
+            hasMethod = true;
+            getCurrentOffset = m;
+            getCurrentOffset.setAccessible(true);
+            continue;
+          }
+          if (m.getName().equals("commitOffset")) {
+              hasMethod = true;
+              commitOffset = m;
+              commitOffset.setAccessible(true);
+              continue;
+          }
+        }
+        
+        log.info("we are using kafka8simple firehose");
+        
         while (firehose.hasMore()) {
           InputRow inputRow = null;
           try {

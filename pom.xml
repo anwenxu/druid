@@ -85,6 +85,7 @@
         <module>integration-tests</module>
         <module>aws-common</module>
         <!-- Non-default modules -->
+<<<<<<< HEAD
         <module>extensions/cassandra-storage</module>
         <module>extensions/hdfs-storage</module>
         <module>extensions/s3-extensions</module>
@@ -97,6 +98,7 @@
         <module>extensions/mysql-metadata-storage</module>
         <module>extensions/postgresql-metadata-storage</module>
         <module>extensions/azure-extensions</module>
+        <module>kafka-eight-simpleConsumer</module>
     </modules>
 
     <dependencyManagement>
@@ -225,7 +227,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>16.0.1</version>
+                <version>15.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.inject</groupId>

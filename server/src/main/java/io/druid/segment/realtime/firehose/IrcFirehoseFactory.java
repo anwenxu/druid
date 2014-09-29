@@ -217,6 +217,12 @@ public class IrcFirehoseFactory implements FirehoseFactory<IrcInputRowParser>
         log.info("disconnecting from irc server [%s]", host);
         irc.disconnect("");
       }
+
+	@Override
+    public long getLastOffsetCommitTime() {
+	    // TODO Auto-generated method stub
+	    return 0;
+    }
     };
   }
 }

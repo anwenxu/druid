@@ -228,6 +228,12 @@ public class RealtimeManagerTest
     public void close() throws IOException
     {
     }
+
+	@Override
+    public long getLastOffsetCommitTime() {
+	    // TODO Auto-generated method stub
+	    return 0;
+    }
   }
 
   private static class TestPlumber implements Plumber
