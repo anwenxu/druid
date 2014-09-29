@@ -62,6 +62,7 @@ public class SQLMetadataSegmentPublisher implements MetadataSegmentPublisher
   @Override
   public void publishSegment(final DataSegment segment) throws IOException
   {
+	  log.info("start Inserting [%s] in DB", segment.getIdentifier());
     try {
       final DBI dbi = connector.getDBI();
       List<Map<String, Object>> exists = dbi.withHandle(
@@ -83,7 +84,7 @@ public class SQLMetadataSegmentPublisher implements MetadataSegmentPublisher
         log.info("Found [%s] in DB, not updating DB", segment.getIdentifier());
         return;
       }
-
+      log.info("Inserting [%s] in DB", segment.getIdentifier());
       dbi.withHandle(
           new HandleCallback<Void>()
           {

@@ -446,5 +446,11 @@ public class IngestSegmentFirehoseFactory implements FirehoseFactory<InputRowPar
     {
       rowYielder.close();
     }
+
+	@Override
+    public long getLastOffsetCommitTime() {
+	    // TODO Auto-generated method stub
+	    return 0;
+    }
   }
 }
