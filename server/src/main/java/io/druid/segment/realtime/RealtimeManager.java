@@ -252,26 +252,6 @@ public class RealtimeManager implements QuerySegmentWalker
 
         long nextFlush = new DateTime().plus(intermediatePersistPeriod).getMillis();
 
-        boolean hasMethod = false;
-        Method commitOffset = null;
-        Method getCurrentOffset = null;
-        Method[] methods = firehose.getClass().getMethods();
-        for (Method m : methods) {
-          if (m.getName().equals("getCurrentOffset")) {
-            hasMethod = true;
-            getCurrentOffset = m;
-            getCurrentOffset.setAccessible(true);
-            continue;
-          }
-          if (m.getName().equals("commitOffset")) {
-              hasMethod = true;
-              commitOffset = m;
-              commitOffset.setAccessible(true);
-              continue;
-          }
-        }
-        
-        log.info("we are using kafka8simple firehose");
         
         while (firehose.hasMore()) {
           InputRow inputRow = null;
