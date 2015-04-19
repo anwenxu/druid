@@ -210,11 +210,5 @@ public class EventReceiverFirehoseFactory implements FirehoseFactory<MapInputRow
         chatHandlerProvider.get().unregister(serviceName);
       }
     }
-
-	@Override
-    public long getLastOffsetCommitTime() {
-	    // TODO Auto-generated method stub
-	    return 0;
-    }
   }
 }

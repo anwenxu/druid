@@ -126,11 +126,5 @@ public class CombiningFirehoseFactory implements FirehoseFactory<InputRowParser>
     {
       currentFirehose.close();
     }
-
-	@Override
-    public long getLastOffsetCommitTime() {
-	    // TODO Auto-generated method stub
-	    return 0;
-    }
   }
 }
