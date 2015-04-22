@@ -151,12 +151,6 @@ public class CombiningFirehoseFactoryTest
         {
           // Do nothing
         }
-
-		@Override
-        public long getLastOffsetCommitTime() {
-	        // TODO Auto-generated method stub
-	        return 0;
-        }
       };
     }
 
