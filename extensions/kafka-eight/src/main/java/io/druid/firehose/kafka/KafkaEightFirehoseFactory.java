@@ -46,7 +46,6 @@ import java.util.Set;
 public class KafkaEightFirehoseFactory implements FirehoseFactory<ByteBufferInputRowParser>
 {
   private static final Logger log = new Logger(KafkaEightFirehoseFactory.class);
-
   @JsonProperty
   private final Properties consumerProps;
 
