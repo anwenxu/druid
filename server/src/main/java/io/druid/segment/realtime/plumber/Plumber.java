@@ -28,7 +28,7 @@ public interface Plumber
    * Perform any initial setup. Should be called before using any other methods, and should be paired
    * with a corresponding call to {@link #finishJob}.
    */
-  public void startJob();
+  public Object startJob();
 
   /**
    * @param row - the row to insert
