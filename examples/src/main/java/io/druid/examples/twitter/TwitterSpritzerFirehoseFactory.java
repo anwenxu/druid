@@ -344,12 +344,6 @@ public class TwitterSpritzerFirehoseFactory implements FirehoseFactory<InputRowP
         log.info("CLOSE twitterstream");
         twitterStream.shutdown(); // invokes twitterStream.cleanUp()
       }
-
-	@Override
-    public long getLastOffsetCommitTime() {
-	    // TODO Auto-generated method stub
-	    return 0;
-    }
     };
   }
 

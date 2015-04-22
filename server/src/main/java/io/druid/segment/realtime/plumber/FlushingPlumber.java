@@ -82,7 +82,7 @@ public class FlushingPlumber extends RealtimePlumber
   }
 
   @Override
-  public void startJob()
+  public Object startJob()
   {
     log.info("Starting job for %s", getSchema().getDataSource());
 
@@ -99,8 +99,9 @@ public class FlushingPlumber extends RealtimePlumber
       );
     }
 
-    bootstrapSinksFromDisk(null);
+    Object metaData = bootstrapSinksFromDisk();
     startFlushThread();
+    return metaData;
   }
 
   protected void flushAfterDuration(final long truncatedTime, final Sink sink)

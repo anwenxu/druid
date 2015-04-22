@@ -99,9 +99,9 @@ public class YeOldePlumberSchool implements PlumberSchool
     return new Plumber()
     {
       @Override
-      public void startJob()
+      public Object startJob()
       {
-
+      	return null;
       }
 
       @Override

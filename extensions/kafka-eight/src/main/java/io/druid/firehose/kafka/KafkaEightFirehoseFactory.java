@@ -145,11 +145,6 @@ public class KafkaEightFirehoseFactory implements FirehoseFactory<ByteBufferInpu
       {
         connector.shutdown();
       }
-      
-      @Override
-		public long getLastOffsetCommitTime() {
-			return 0;
-		}
     };
   }
 

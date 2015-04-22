@@ -43,6 +43,7 @@ import io.druid.common.guava.ThreadRenamingCallable;
 import io.druid.common.guava.ThreadRenamingRunnable;
 import io.druid.concurrent.Execs;
 import io.druid.data.input.Firehose;
+import io.druid.data.input.FirehoseV2;
 import io.druid.data.input.InputRow;
 import io.druid.query.MetricsEmittingQueryRunner;
 import io.druid.query.Query;
@@ -82,6 +83,7 @@ import org.joda.time.Interval;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -179,15 +181,17 @@ public class RealtimePlumber implements Plumber
   }
 
   @Override
-  public void startJob()
+  public Object startJob()
   {
+  	Object metaData = null;
     computeBaseDir(schema).mkdirs();
     initializeExecutors();
-    bootstrapSinksFromDisk(schema.getFirehose());
+    metaData = bootstrapSinksFromDisk();
     registerServerViewCallback();
     startPersistThread();
     // Push pending sinks bootstrapped from previous run
     mergeAndPush();
+    return metaData;
   }
 
   @Override
@@ -587,8 +591,112 @@ public class RealtimePlumber implements Plumber
     }
   }
 
-  protected void bootstrapSinksFromDisk(final Firehose firehose)
+  protected Object bootstrapSinksFromDisk()
   {
+  	Object metaData = null;
+    final VersioningPolicy versioningPolicy = config.getVersioningPolicy();
+    File baseDir = computeBaseDir(schema);
+    if (baseDir == null || !baseDir.exists()) {
+      return null;
+    }
+
+    File[] files = baseDir.listFiles();
+    if (files == null) {
+      return null;
+    }
+
+    for (File sinkDir : files) {
+      Interval sinkInterval = new Interval(sinkDir.getName().replace("_", "/"));
+
+      //final File[] sinkFiles = sinkDir.listFiles();
+      // To avoid reading and listing of "merged" dir
+      final File[] sinkFiles = sinkDir.listFiles(
+          new FilenameFilter()
+          {
+            @Override
+            public boolean accept(File dir, String fileName)
+            {
+              return !(Ints.tryParse(fileName) == null);
+            }
+          }
+      );
+      Arrays.sort(
+          sinkFiles,
+          new Comparator<File>()
+          {
+            @Override
+            public int compare(File o1, File o2)
+            {
+              try {
+                return Ints.compare(Integer.parseInt(o1.getName()), Integer.parseInt(o2.getName()));
+              }
+              catch (NumberFormatException e) {
+                log.error(e, "Couldn't compare as numbers? [%s][%s]", o1, o2);
+                return o1.compareTo(o2);
+              }
+            }
+          }
+      );
+
+      long latestCommitTime = 0;
+      try {
+        List<FireHydrant> hydrants = Lists.newArrayList();
+        for (File segmentDir : sinkFiles) {
+          log.info("Loading previously persisted segment at [%s]", segmentDir);
+
+          // Although this has been tackled at start of this method.
+          // Just a doubly-check added to skip "merged" dir. from being added to hydrants
+          // If 100% sure that this is not needed, this check can be removed.
+          if (Ints.tryParse(segmentDir.getName()) == null) {
+            continue;
+          }
+          QueryableIndex queryableIndex = IndexIO.loadIndex(segmentDir);
+      		BasicFileAttributes attr = Files.readAttributes(segmentDir.toPath(), BasicFileAttributes.class);
+      		log.info("Init MetaData loader :: DELETE file attr creation time [%s]", attr.creationTime());
+      		if (attr.creationTime().toMillis() > latestCommitTime) {
+      			latestCommitTime = attr.creationTime().toMillis();
+      			metaData = queryableIndex.getMetaData();
+      			log.info("Init MetaData loader :: assigning metaData with latestCommitTime [%s]", latestCommitTime);
+      		}
+          hydrants.add(
+              new FireHydrant(
+                  new QueryableIndexSegment(
+                      DataSegment.makeDataSegmentIdentifier(
+                          schema.getDataSource(),
+                          sinkInterval.getStart(),
+                          sinkInterval.getEnd(),
+                          versioningPolicy.getVersion(sinkInterval),
+                          config.getShardSpec()
+                      ),
+                      queryableIndex
+                  ),
+                  Integer.parseInt(segmentDir.getName())
+              )
+          );
+        }
+
+        Sink currSink = new Sink(sinkInterval, schema, config, versioningPolicy.getVersion(sinkInterval), hydrants);
+        sinks.put(sinkInterval.getStartMillis(), currSink);
+        sinkTimeline.add(
+            currSink.getInterval(),
+            currSink.getVersion(),
+            new SingleElementPartitionChunk<Sink>(currSink)
+        );
+
+        segmentAnnouncer.announceSegment(currSink.getSegment());
+      }
+      catch (IOException e) {
+        log.makeAlert(e, "Problem loading sink[%s] from disk.", schema.getDataSource())
+           .addData("interval", sinkInterval)
+           .emit();
+      }
+    }
+		return metaData;
+  }
+
+  
+  protected void bootstrapSinksFromDisk(final FirehoseV2 firehose)
+  {/*
     final VersioningPolicy versioningPolicy = config.getVersioningPolicy();
 
     File baseDir = computeBaseDir(schema);
@@ -651,6 +759,7 @@ public class RealtimePlumber implements Plumber
 
       try {
         List<FireHydrant> hydrants = Lists.newArrayList();
+        List<FireHydrant> sinkHydrants = Lists.newArrayList();
         for (File segmentDir : sinkFiles) {
           log.info("Loading previously persisted segment at [%s]", segmentDir);
 
@@ -660,7 +769,6 @@ public class RealtimePlumber implements Plumber
           if (Ints.tryParse(segmentDir.getName()) == null) {
             continue;
           }
-
           hydrants.add(
               new FireHydrant(
                   new QueryableIndexSegment(
@@ -694,7 +802,7 @@ public class RealtimePlumber implements Plumber
            .emit();
       }
     }
-  }
+  */}
 
   protected void startPersistThread()
   {
