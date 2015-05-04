@@ -18,16 +18,30 @@
 package io.druid.segment.data;
 
 import com.google.common.collect.Maps;
+import com.metamx.common.io.smoosh.FileSmoosher;
+
+import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.druid.segment.BaseProgressIndicator;
+import io.druid.segment.IndexMaker;
+import io.druid.segment.IndexSpec;
+import io.druid.segment.IndexableAdapter;
+import io.druid.segment.ProgressIndicator;
+
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  */
@@ -48,7 +62,7 @@ public class GenericIndexedTest
         )
     ).indexOf("a");
   }
-
+  
   @Test
   public void testSanity() throws Exception
   {

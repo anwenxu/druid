@@ -350,6 +350,7 @@ public class RealtimeManager implements QuerySegmentWalker
       }
     
     }
+
     
     private void runFirehose(Firehose firehose) 
     {
@@ -357,7 +358,6 @@ public class RealtimeManager implements QuerySegmentWalker
       final Period intermediatePersistPeriod = config.getIntermediatePersistPeriod();
 
       long nextFlush = new DateTime().plus(intermediatePersistPeriod).getMillis();
-
       
       while (firehose.hasMore()) {
         InputRow inputRow = null;

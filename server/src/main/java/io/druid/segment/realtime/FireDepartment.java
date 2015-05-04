@@ -20,8 +20,8 @@ package io.druid.segment.realtime;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.metamx.common.logger.Logger;
 
-import io.druid.data.input.Firehose;
 import io.druid.segment.indexing.DataSchema;
 import io.druid.segment.indexing.IngestionSpec;
 import io.druid.segment.indexing.RealtimeIOConfig;
@@ -43,7 +43,8 @@ public class FireDepartment extends IngestionSpec<RealtimeIOConfig, RealtimeTuni
   private final DataSchema dataSchema;
   private final RealtimeIOConfig ioConfig;
   private final RealtimeTuningConfig tuningConfig;
-
+	private static final Logger log = new Logger(
+			FireDepartment.class);
   private final FireDepartmentMetrics metrics = new FireDepartmentMetrics();
 
   @JsonCreator
@@ -96,6 +97,11 @@ public class FireDepartment extends IngestionSpec<RealtimeIOConfig, RealtimeTuni
 
   public Closeable connect(Object metaData) throws IOException
   {
+  	try{
+  		log.info("connecting firehose [%s]", ioConfig);
+  	} catch (Exception e) {
+  		log.info("failed to connect firehose");
+  	}
   	if (ioConfig.getFirehoseFactoryV2() != null) {
   		return ioConfig.getFirehoseFactoryV2().connect(dataSchema.getParser(), metaData);
   	}

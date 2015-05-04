@@ -49,6 +49,7 @@ import com.metamx.common.guava.nary.BinaryFn;
 import com.metamx.common.io.smoosh.FileSmoosher;
 import com.metamx.common.io.smoosh.SmooshedWriter;
 import com.metamx.common.logger.Logger;
+
 import io.druid.collections.CombiningIterable;
 import io.druid.common.utils.JodaUtils;
 import io.druid.common.utils.SerializerUtils;
@@ -78,11 +79,13 @@ import io.druid.segment.serde.ComplexMetrics;
 import io.druid.segment.serde.DictionaryEncodedColumnPartSerde;
 import io.druid.segment.serde.FloatGenericColumnPartSerde;
 import io.druid.segment.serde.LongGenericColumnPartSerde;
+
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
 import javax.annotation.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -93,7 +96,11 @@ import java.nio.LongBuffer;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
+<<<<<<< HEAD
 import java.util.Collections;
+=======
+import java.util.HashSet;
+>>>>>>> 0505, first prod test version
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -115,9 +122,9 @@ public class IndexMaker
     mapper = injector.getInstance(ObjectMapper.class);
   }
 
-  public static File persist(final IncrementalIndex index, File outDir, final IndexSpec indexSpec) throws IOException
+  public static File persist(final IncrementalIndex index, File outDir, final Object commitMetaData, final IndexSpec indexSpec) throws IOException
   {
-    return persist(index, index.getInterval(), outDir, indexSpec);
+    return persist(index, index.getInterval(), outDir, commitMetaData, indexSpec);
   }
 
   /**
@@ -134,16 +141,18 @@ public class IndexMaker
       final IncrementalIndex index,
       final Interval dataInterval,
       File outDir,
+      final Object commitMetaData,
       final IndexSpec indexSpec
   ) throws IOException
   {
-    return persist(index, dataInterval, outDir, indexSpec, new LoggingProgressIndicator(outDir.toString()));
+    return persist(index, dataInterval, outDir, commitMetaData, indexSpec, new LoggingProgressIndicator(outDir.toString()));
   }
 
   public static File persist(
       final IncrementalIndex index,
       final Interval dataInterval,
       File outDir,
+      final Object commitMetaData,
       final IndexSpec indexSpec,
       ProgressIndicator progress
   ) throws IOException
@@ -181,6 +190,7 @@ public class IndexMaker
         ),
         index.getMetricAggs(),
         outDir,
+        commitMetaData,
         indexSpec,
         progress
     );
@@ -215,22 +225,24 @@ public class IndexMaker
         ),
         metricAggs,
         outDir,
+        null,
         indexSpec,
         progress
     );
   }
 
   public static File merge(
-      List<IndexableAdapter> adapters, final AggregatorFactory[] metricAggs, File outDir, final IndexSpec indexSpec
+      List<IndexableAdapter> adapters, final AggregatorFactory[] metricAggs, File outDir, final String commitMetaData, final IndexSpec indexSpec
   ) throws IOException
   {
-    return merge(adapters, metricAggs, outDir, indexSpec, new LoggingProgressIndicator(outDir.toString()));
+    return merge(adapters, metricAggs, outDir, commitMetaData, indexSpec, new LoggingProgressIndicator(outDir.toString()));
   }
 
   public static File merge(
       List<IndexableAdapter> adapters,
       final AggregatorFactory[] metricAggs,
       File outDir,
+      final Object commitMetaData,
       final IndexSpec indexSpec,
       ProgressIndicator progress
   ) throws IOException
@@ -320,7 +332,7 @@ public class IndexMaker
       }
     };
 
-    return makeIndexFiles(adapters, outDir, progress, mergedDimensions, mergedMetrics, rowMergerFn, indexSpec);
+    return makeIndexFiles(adapters, outDir, progress, mergedDimensions, mergedMetrics, commitMetaData, rowMergerFn, indexSpec);
   }
 
 
@@ -360,12 +372,13 @@ public class IndexMaker
       final IndexSpec indexSpec
   ) throws IOException
   {
-    return append(adapters, outDir, new LoggingProgressIndicator(outDir.toString()), indexSpec);
+    return append(adapters, outDir, null, new LoggingProgressIndicator(outDir.toString()), indexSpec);
   }
 
   public static File append(
       final List<IndexableAdapter> adapters,
       final File outDir,
+      final String commitMetaData,
       final ProgressIndicator progress,
       final IndexSpec indexSpec
   ) throws IOException
@@ -436,7 +449,7 @@ public class IndexMaker
       }
     };
 
-    return makeIndexFiles(adapters, outDir, progress, mergedDimensions, mergedMetrics, rowMergerFn, indexSpec);
+    return makeIndexFiles(adapters, outDir, progress, mergedDimensions, mergedMetrics, commitMetaData, rowMergerFn, indexSpec);
   }
 
   private static File makeIndexFiles(
@@ -445,6 +458,7 @@ public class IndexMaker
       final ProgressIndicator progress,
       final List<String> mergedDimensions,
       final List<String> mergedMetrics,
+      final Object commitMetaData,
       final Function<ArrayList<Iterable<Rowboat>>, Iterable<Rowboat>> rowMergerFn,
       final IndexSpec indexSpec
   ) throws IOException
@@ -537,6 +551,7 @@ public class IndexMaker
     makeMetricColumns(v9Smoosher, progress, theRows, mergedMetrics, valueTypes, metricTypeNames, rowCount, indexSpec);
 
     progress.progress();
+<<<<<<< HEAD
     makeIndexBinary(
         v9Smoosher,
         adapters,
@@ -547,6 +562,9 @@ public class IndexMaker
         progress,
         indexSpec
     );
+=======
+    makeIndexBinary(v9Smoosher, adapters, outDir, mergedDimensions, mergedMetrics, skippedDimensions, commitMetaData, progress, indexSpec);
+>>>>>>> 0505, first prod test version
 
     v9Smoosher.close();
 
@@ -1353,6 +1371,7 @@ public class IndexMaker
       final List<String> mergedDimensions,
       final List<String> mergedMetrics,
       final Set<String> skippedDimensions,
+      final Object commitMetaData,
       final ProgressIndicator progress,
       final IndexSpec indexSpec
   ) throws IOException
@@ -1377,17 +1396,24 @@ public class IndexMaker
         }
     );
 
-    GenericIndexed<String> cols = GenericIndexed.fromIterable(finalColumns, GenericIndexed.STRING_STRATEGY);
-    GenericIndexed<String> dims = GenericIndexed.fromIterable(finalDimensions, GenericIndexed.STRING_STRATEGY);
+    List<String> metaDatas = new ArrayList<String>();//TODO make sure this is ideal
+    if (commitMetaData != null) {
+    	log.info("DELETE about to add metadata to index.drd [%s]", commitMetaData);
+    	metaDatas.add(commitMetaData.toString());
+    }
+    GenericIndexed<String> metas = GenericIndexed.fromIterable(metaDatas, GenericIndexed.stringStrategy);
+    GenericIndexed<String> cols = GenericIndexed.fromIterable(finalColumns, GenericIndexed.stringStrategy);
+    GenericIndexed<String> dims = GenericIndexed.fromIterable(finalDimensions, GenericIndexed.stringStrategy);
 
     final String bitmapSerdeFactoryType = mapper.writeValueAsString(indexSpec.getBitmapSerdeFactory());
-    final long numBytes = cols.getSerializedSize()
+    final long numBytes = metas.getSerializedSize()
+    											+ cols.getSerializedSize()
                           + dims.getSerializedSize()
                           + 16
                           + serializerUtils.getSerializedStringByteSize(bitmapSerdeFactoryType);
 
     final SmooshedWriter writer = v9Smoosher.addWithSmooshedWriter("index.drd", numBytes);
-
+    metas.writeToChannel(writer);
     cols.writeToChannel(writer);
     dims.writeToChannel(writer);
 

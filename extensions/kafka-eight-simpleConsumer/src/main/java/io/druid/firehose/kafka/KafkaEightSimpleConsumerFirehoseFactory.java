@@ -43,6 +43,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.json.JSONObject;
+
 import com.metamx.common.logger.Logger;
 import com.metamx.common.parsers.ParseException;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -87,14 +89,9 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 	@JsonProperty
 	private final int queueBufferLength;
 
-	@JsonProperty
-	private final ByteBufferInputRowParser parser;
-
 	private final Map<Integer, KafkaSimpleConsumer> simpleConsumerMap = new HashMap<Integer, KafkaSimpleConsumer>();
 
 	private final static int fileRetention = 5;
-
-	private long lastCommitTime = 0;
 
 	private final Map<Integer, Long> lastOffsetPartitions = new HashMap<Integer, Long>();
 
@@ -102,13 +99,13 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 	private static final String PARTITION_OFFSET_SEPERATOR = ",";
 	private static final String FILE_NAME_SEPERATOR = "_";
 
-	private MessageDigest md;
+	/*private MessageDigest md;*/
 
-	private FixedFileArrayList<File> offsetFileList = new FixedFileArrayList<File>(
+/*	private FixedFileArrayList<File> offsetFileList = new FixedFileArrayList<File>(
 	        fileRetention);
 	private FixedFileArrayList<Object> offsetObjectList = new FixedFileArrayList<Object>(
       fileRetention);
-
+*/
 	private List<Thread> consumerThreadList = new ArrayList<Thread>();
 	
 	private  InputRow currMsg;
@@ -121,153 +118,59 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 	        @JsonProperty("partitionIdList") String partitionIdList,
 	        @JsonProperty("clientId") String clientId,
 	        @JsonProperty("feed") String feed,
-	        @JsonProperty("parser") ByteBufferInputRowParser parser,
 	        @JsonProperty("offsetPosition") String offsetPosition,
 	        @JsonProperty("queueBufferLength") int queueBufferLength) {
 		this.brokerList = brokerList;
 		this.partitionIdList = partitionIdList;
 		this.clientId = clientId;
 		this.feed = feed;
-		this.parser = (parser == null) ? null : parser;
 		this.queueBufferLength = queueBufferLength;
 		this.offsetPosition = offsetPosition;
-		try {
+/*		try {
 			md = MessageDigest.getInstance("MD5");
 		} catch (NoSuchAlgorithmException e) {
 			log.info("no md5 algorithm");
-		}
+		}*/
 	}
 
-	private String getMd5String(String content){
+/*	private String getMd5String(String content){
 		md.update(content.getBytes(), 0, content.length());
 		return new BigInteger(1, md.digest()).toString(16);
 	}
-	
+	*/
 	private void loadOffsetFromPreviousMetaData(Object lastCommit) {
+		log.info("DELETE loading Offsets from previous metadata ", this.feed, this.clientId );
+		if (lastCommit == null) {
+			return;
+		}
 		ObjectMapper mapper = new ObjectMapper();
 		Map<?, ?> map = null;
 		try {
-	 
-			// read from file, convert it to user class
-			map = mapper.readValue(lastCommit.toString(), Map.class);
-	 
+			map = mapper.readValue(lastCommit.toString(), HashMap.class);
 			// display to console
-			log.info(map.toString());
-	 
-		} catch (JsonGenerationException e) {
-	 
-			e.printStackTrace();
-	 
-		} catch (JsonMappingException e) {
-	 
-			e.printStackTrace();
-	 
-		} catch (IOException e) {
-	 
-			e.printStackTrace();
-	 
+			log.info("Loading metaData form persisted files [%s]", map.toString());
+		} catch (Exception e) {
+			log.error("Failed to load metaData from persisted files [%s]", lastCommit.toString());
+			return;
 		}
-		
+
 		Iterator<?> mapIter = map.keySet().iterator();
 		while(mapIter.hasNext()) {
 			try {
 				String keyName = (String) mapIter.next();
 				String keyVal = (String) map.get(keyName);
-				if(keyName.equalsIgnoreCase("lastCommitTime")) {
-					lastCommitTime = Long.parseLong(keyVal);
-					continue;
-				}
-				if (lastOffsetPartitions.containsKey(Integer
-		        .parseInt(keyName))
-		        && lastOffsetPartitions.get(Integer
-		                .parseInt(keyName)) >= Long
-		                .parseLong(keyVal)) {
-							continue;
-				}
-				lastOffsetPartitions.put(
-		        Integer.parseInt(keyName),
-		        Long.parseLong(keyVal));
-				
-			} catch (ClassCastException e) {
-				log.error("Failed to cast to string");
-			}
-		}
-		log.info("offset map: " + lastOffsetPartitions);
-
-	}
-
-	
-	private void loadOffsetFromDisk() {
-
-		File offsetPosistion = new File(offsetPosition);
-		if (!offsetPosistion.exists()) {
-			offsetPosistion.mkdirs();
-		}
-		File[] listFiles = offsetPosistion.listFiles(new FilenameFilter() {
-			public boolean accept(File dir, String fileName) {
-				return true;
-			}
-		});
-		for (File file : listFiles)
-			Arrays.sort(listFiles, new Comparator<File>() {
-				public int compare(File f1, File f2) {
-					return Long.valueOf(f1.lastModified()).compareTo(
-					        f2.lastModified());
-				}
-			});
-
-		for (File file : listFiles) {
-			try {
-				offsetFileList.add(file);
-				String fileName = file.getName();
-				String fileTimeStamp = fileName.split(FILE_NAME_SEPERATOR)[0];
-				String md5String = fileName.split(FILE_NAME_SEPERATOR)[1];
-
-				byte[] fileContents = null;
-				try {
-					fileContents = Files
-					        .readAllBytes(Paths.get(file.getPath()));
-				} catch (IOException e) {
-					log.error("can't read file when load offset from disk", e);
-				}
-				if (!md5String.equals(getMd5String(new String(fileContents)))) {
-					log.info("offset file  [%s] file name and content mismatch,  [%s] file content md5: [%s]" ,fileTimeStamp,new String(fileContents),getMd5String(new String(fileContents)));
-					file.delete();
-					continue;
-				}
-				if (file.lastModified() > lastCommitTime) {
-					lastCommitTime = file.lastModified();
-				}
-				String fileContentString = new String(fileContents);
-				String[] partitionsOffset = null;
-				if (fileContentString.contains(PARTITION_SEPERATOR)) {
-					partitionsOffset = fileContentString
-					        .split(PARTITION_SEPERATOR);
+			
+				if (lastOffsetPartitions.containsKey(Integer.parseInt(keyName))) {
+		        if(lastOffsetPartitions.get(Integer.parseInt(keyName)) < Long.parseLong(keyVal)) {
+		        	lastOffsetPartitions.put(Integer.parseInt(keyName),Long.parseLong(keyVal));
+		        }
 				} else {
-					partitionsOffset = new String[1];
-					partitionsOffset[0] = fileContentString;
+					lastOffsetPartitions.put(Integer.parseInt(keyName),Long.parseLong(keyVal));
 				}
-				for (String partitionOffsetString : partitionsOffset) {
-					if (!partitionOffsetString.trim().equals("")) {
-						String[] partitionOffset = partitionOffsetString
-						        .split(PARTITION_OFFSET_SEPERATOR);
-						if (lastOffsetPartitions.containsKey(Integer
-						        .parseInt(partitionOffset[0]))
-						        && lastOffsetPartitions.get(Integer
-						                .parseInt(partitionOffset[0])) >= Long
-						                .parseLong(partitionOffset[1])) {
-							continue;
-						}
-						lastOffsetPartitions.put(
-						        Integer.parseInt(partitionOffset[0]),
-						        Long.parseLong(partitionOffset[1]));
-					}
-				}
-			} catch (Exception e) {
-				file.delete();
+			} catch (ClassCastException e) {
+				log.error("Failed to update partition offsets");
 			}
 		}
-		log.info("lastoffset commit time: " + lastCommitTime);
 		log.info("offset map: " + lastOffsetPartitions);
 
 	}
@@ -275,6 +178,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 	@Override
 	public FirehoseV2 connect(final ByteBufferInputRowParser firehoseParser, Object lastCommit) throws IOException 
 	{
+		log.info("DELETE connecting Firehose V2");
 		Set<String> newDimExclus = Sets.union(
 				firehoseParser.getParseSpec().getDimensionsSpec().getDimensionExclusions(),
 		        Sets.newHashSet("feed")
@@ -382,7 +286,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 
 			@Override
 			public Committer makeCommitter() {
-				final java.util.Date date = new java.util.Date();
+				/*final java.util.Date date = new java.util.Date();
 
 				StringBuilder fileContent = new StringBuilder();
 
@@ -391,22 +295,10 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 					        + PARTITION_OFFSET_SEPERATOR
 					        + lastOffsetPartitions.get(partition)
 					        + PARTITION_SEPERATOR);
-				}
+				}*/
 
-				ObjectMapper mapper = new ObjectMapper();
-				Object thisCommit = null;
-				try
-        {
-	        thisCommit = mapper.writeValueAsString(lastOffsetPartitions);
-        } catch (JsonProcessingException e1)
-        {
-	        // TODO Auto-generated catch block
-	        e1.printStackTrace();
-        }
-				
-				final String fileName =getMd5String(fileContent.toString());
-				final String fileContentStr = fileContent.toString();
-				
+				Object thisCommit = new JSONObject(lastOffsetPartitions);
+
 				class MyCommitter implements Committer {
 					private Object metaData;
 					public void setMetaData(Object metaData) {
@@ -419,10 +311,12 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 					@Override
 					public void run() {
 						// TODO this makes the commit
+						log.info("DELETE runnable to make the commit");
 					}
 				};
 				MyCommitter committer = new MyCommitter();
 				committer.setMetaData(thisCommit);
+				log.info("DELETE setting in thisCommit");
 				return committer;
 			}
 

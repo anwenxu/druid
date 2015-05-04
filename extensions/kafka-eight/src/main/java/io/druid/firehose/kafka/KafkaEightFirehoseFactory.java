@@ -66,6 +66,7 @@ public class KafkaEightFirehoseFactory implements FirehoseFactory<ByteBufferInpu
   @Override
   public Firehose connect(final ByteBufferInputRowParser firehoseParser) throws IOException
   {
+  	log.info("DELETE connecting Firehose V1");
     Set<String> newDimExclus = Sets.union(
         firehoseParser.getParseSpec().getDimensionsSpec().getDimensionExclusions(),
         Sets.newHashSet("feed")
