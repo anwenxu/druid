@@ -47,6 +47,7 @@ import com.metamx.common.io.smoosh.SmooshedFileMapper;
 import com.metamx.common.io.smoosh.SmooshedWriter;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.EmittingLogger;
+
 import io.druid.common.utils.SerializerUtils;
 import io.druid.guice.ConfigProvider;
 import io.druid.guice.GuiceInjectors;
@@ -70,6 +71,8 @@ import io.druid.segment.data.IndexedInts;
 import io.druid.segment.data.IndexedIterable;
 import io.druid.segment.data.IndexedMultivalue;
 import io.druid.segment.data.IndexedRTree;
+import io.druid.segment.data.JacksonSerializedObject;
+import io.druid.segment.data.SimpleJacksonSerializedObject;
 import io.druid.segment.data.VSizeIndexed;
 import io.druid.segment.data.VSizeIndexedInts;
 import io.druid.segment.serde.BitmapIndexColumnPartSupplier;
@@ -82,6 +85,7 @@ import io.druid.segment.serde.FloatGenericColumnSupplier;
 import io.druid.segment.serde.LongGenericColumnPartSerde;
 import io.druid.segment.serde.LongGenericColumnSupplier;
 import io.druid.segment.serde.SpatialIndexColumnPartSupplier;
+
 import org.joda.time.Interval;
 
 import java.io.ByteArrayOutputStream;
@@ -92,6 +96,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -163,9 +168,9 @@ public class IndexIO
   public static QueryableIndex loadIndex(File inDir) throws IOException
   {
     final int version = SegmentUtils.getVersionFromDir(inDir);
-
+    log.info("DELETE in loadIndex");
     final IndexLoader loader = indexLoaders.get(version);
-
+    log.info("DELETE got loader of version [%d]", version);
     if (loader != null) {
       return loader.load(inDir);
     } else {
@@ -817,6 +822,7 @@ public class IndexIO
       final ByteBuffer indexBuffer = v8SmooshedFiles.mapFile("index.drd");
 
       indexBuffer.get(); // Skip the version byte
+
       final GenericIndexed<String> dims8 = GenericIndexed.read(
           indexBuffer, GenericIndexed.STRING_STRATEGY
       );
@@ -845,15 +851,18 @@ public class IndexIO
       Set<String> columns = Sets.newTreeSet();
       columns.addAll(Lists.newArrayList(dims9));
       columns.addAll(Lists.newArrayList(availableMetrics));
-
+      List<String> metaDatas = new ArrayList<String>();
+      log.info("DELETE faking null commitMetaData for v8 to v9 conversion");
+      GenericIndexed<String> metas = GenericIndexed.fromIterable(metaDatas, GenericIndexed.STRING_STRATEGY);
       GenericIndexed<String> cols = GenericIndexed.fromIterable(columns, GenericIndexed.STRING_STRATEGY);
 
       final String segmentBitmapSerdeFactoryString = mapper.writeValueAsString(segmentBitmapSerdeFactory);
 
-      final long numBytes = cols.getSerializedSize() + dims9.getSerializedSize() + 16
+      final long numBytes = metas.getSerializedSize() + cols.getSerializedSize() + dims9.getSerializedSize() + 16
                             + serializerUtils.getSerializedStringByteSize(segmentBitmapSerdeFactoryString);
 
       final SmooshedWriter writer = v9Smoosher.addWithSmooshedWriter("index.drd", numBytes);
+      metas.writeToChannel(writer);
       cols.writeToChannel(writer);
       dims9.writeToChannel(writer);
       serializerUtils.writeLong(writer, dataInterval.getStartMillis());
@@ -879,6 +888,7 @@ public class IndexIO
     @Override
     public QueryableIndex load(File inDir) throws IOException
     {
+    	log.info("DELETE in legacy index loader");
       MMappedIndex index = legacyHandler.mapDir(inDir);
 
       Map<String, Column> columns = Maps.newHashMap();
@@ -963,7 +973,8 @@ public class IndexIO
           index.getAvailableDimensions(),
           new ConciseBitmapFactory(),
           columns,
-          index.getFileMapper()
+          index.getFileMapper(),
+          null
       );
     }
   }
@@ -974,6 +985,7 @@ public class IndexIO
     public QueryableIndex load(File inDir) throws IOException
     {
       log.debug("Mapping v9 index[%s]", inDir);
+      log.info("DELETE in V9Index loader");
       long startTime = System.currentTimeMillis();
 
       final int theVersion = Ints.fromByteArray(Files.toByteArray(new File(inDir, "version.bin")));
@@ -988,18 +1000,28 @@ public class IndexIO
        * Index.drd should consist of the segment version, the columns and dimensions of the segment as generic
        * indexes, the interval start and end millis as longs (in 16 bytes), and a bitmap index type.
        */
+
+      final GenericIndexed<String> metas = GenericIndexed.read(indexBuffer, GenericIndexed.STRING_STRATEGY);
       final GenericIndexed<String> cols = GenericIndexed.read(indexBuffer, GenericIndexed.STRING_STRATEGY);
       final GenericIndexed<String> dims = GenericIndexed.read(indexBuffer, GenericIndexed.STRING_STRATEGY);
+
       final Interval dataInterval = new Interval(indexBuffer.getLong(), indexBuffer.getLong());
       final BitmapSerdeFactory segmentBitmapSerdeFactory;
-      //TODO load metadata here 
+      /**
+       * meta data is indexed the same way cols, dims had
+       * */
+      Object commitMetaData = null;
+      for (String meta : metas) {
+      	commitMetaData = (Object) meta;
+      	log.info("DELETE loaded commitMetaData [%s]", commitMetaData);
+      }
       /**
        * This is a workaround for the fact that in v8 segments, we have no information about the type of bitmap
        * index to use. Since we cannot very cleanly build v9 segments directly, we are using a workaround where
        * this information is appended to the end of index.drd.
        */
       if (indexBuffer.hasRemaining()) {
-        segmentBitmapSerdeFactory = mapper.readValue(serializerUtils.readString(indexBuffer), BitmapSerdeFactory.class);
+      	segmentBitmapSerdeFactory = mapper.readValue(serializerUtils.readString(indexBuffer), BitmapSerdeFactory.class);
       } else {
         segmentBitmapSerdeFactory = new BitmapSerde.LegacyBitmapSerdeFactory();
       }
@@ -1013,7 +1035,7 @@ public class IndexIO
       columns.put(Column.TIME_COLUMN_NAME, deserializeColumn(mapper, smooshedFiles.mapFile("__time")));
 
       final QueryableIndex index = new SimpleQueryableIndex(
-          dataInterval, cols, dims, segmentBitmapSerdeFactory.getBitmapFactory(), columns, smooshedFiles
+          dataInterval, cols, dims, segmentBitmapSerdeFactory.getBitmapFactory(), columns, smooshedFiles, commitMetaData
       );
 
       log.debug("Mapped v9 index[%s] in %,d millis", inDir, System.currentTimeMillis() - startTime);

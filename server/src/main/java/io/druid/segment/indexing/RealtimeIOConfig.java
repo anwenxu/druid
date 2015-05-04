@@ -19,6 +19,7 @@ package io.druid.segment.indexing;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.metamx.common.logger.Logger;
 
 import io.druid.data.input.FirehoseFactory;
 import io.druid.data.input.FirehoseFactoryV2;
@@ -31,7 +32,8 @@ public class RealtimeIOConfig implements IOConfig
   private final FirehoseFactory firehoseFactory;
   private final PlumberSchool plumberSchool;
   private final FirehoseFactoryV2 firehoseFactoryV2;
-
+	private static final Logger log = new Logger(
+			RealtimeIOConfig.class);
   @JsonCreator
   public RealtimeIOConfig(
       @JsonProperty("firehose") FirehoseFactory firehoseFactory,
@@ -42,17 +44,28 @@ public class RealtimeIOConfig implements IOConfig
     this.firehoseFactory = firehoseFactory;
     this.plumberSchool = plumberSchool;
     this.firehoseFactoryV2 = firehoseFactoryV2;
+    try{
+  		log.info("initializing realtime io config firehose [%s] - firehoseV2 [%s]", firehoseFactory, firehoseFactoryV2);
+  	} catch (Exception e) {
+  		log.info("failed to get initialization firehose");
+  	}
   }
 
   @JsonProperty("firehose")
   public FirehoseFactory getFirehoseFactory()
   {
+  	log.info("get Firehose");
     return firehoseFactory;
   }
   
   @JsonProperty("firehoseV2")
   public FirehoseFactoryV2 getFirehoseFactoryV2()
   {
+  	try{
+  		log.info("initializing realtime io config firehose [%s] - firehoseV2 [%s]", firehoseFactory, firehoseFactoryV2);
+  	} catch (Exception e) {
+  		log.info("failed to get initialization firehose");
+  	}
   	return firehoseFactoryV2;
   }
 

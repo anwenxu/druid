@@ -48,7 +48,6 @@ public class GenericIndexed<T> implements Indexed<T>
   private static final byte version = 0x1;
 
   private int indexOffset;
-
   public static <T> GenericIndexed<T> fromArray(T[] objects, ObjectStrategy<T> strategy)
   {
     return fromIterable(Arrays.asList(objects), strategy);

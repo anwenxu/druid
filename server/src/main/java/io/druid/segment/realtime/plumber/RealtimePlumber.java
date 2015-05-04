@@ -42,6 +42,7 @@ import io.druid.client.ServerView;
 import io.druid.common.guava.ThreadRenamingCallable;
 import io.druid.common.guava.ThreadRenamingRunnable;
 import io.druid.concurrent.Execs;
+import io.druid.data.input.Committer;
 import io.druid.data.input.Firehose;
 import io.druid.data.input.FirehoseV2;
 import io.druid.data.input.InputRow;
@@ -345,6 +346,7 @@ public class RealtimePlumber implements Plumber
   @Override
   public void persist(final Runnable commitRunnable)
   {
+
     final List<Pair<FireHydrant, Interval>> indexesToPersist = Lists.newArrayList();
     for (Sink sink : sinks.values()) {
       if (sink.swappable()) {
@@ -364,7 +366,54 @@ public class RealtimePlumber implements Plumber
           {
             try {
               for (Pair<FireHydrant, Interval> pair : indexesToPersist) {
-                metrics.incrementRowOutputCount(persistHydrant(pair.lhs, schema, pair.rhs));
+                metrics.incrementRowOutputCount(persistHydrant(pair.lhs, schema, pair.rhs, null));
+              }
+              commitRunnable.run();
+            }
+            catch (Exception e) {
+              metrics.incrementFailedPersists();
+              throw e;
+            }
+            finally {
+              metrics.incrementNumPersists();
+              metrics.incrementPersistTimeMillis(persistStopwatch.elapsed(TimeUnit.MILLISECONDS));
+              persistStopwatch.stop();
+            }
+          }
+        }
+    );
+
+    final long startDelay = runExecStopwatch.elapsed(TimeUnit.MILLISECONDS);
+    metrics.incrementPersistBackPressureMillis(startDelay);
+    if (startDelay > WARN_DELAY) {
+      log.warn("Ingestion was throttled for [%,d] millis because persists were pending.", startDelay);
+    }
+    runExecStopwatch.stop();
+  
+  }
+  @Override
+  public void persist(final Committer commitRunnable)
+  {
+    final List<Pair<FireHydrant, Interval>> indexesToPersist = Lists.newArrayList();
+    for (Sink sink : sinks.values()) {
+      if (sink.swappable()) {
+        indexesToPersist.add(Pair.of(sink.swap(), sink.getInterval()));
+      }
+    }
+
+    log.info("Submitting persist runnable for dataSource[%s]", schema.getDataSource());
+
+    final Stopwatch runExecStopwatch = Stopwatch.createStarted();
+    final Stopwatch persistStopwatch = Stopwatch.createStarted();
+    persistExecutor.execute(
+        new ThreadRenamingRunnable(String.format("%s-incremental-persist", schema.getDataSource()))
+        {
+          @Override
+          public void doRun()
+          {
+            try {
+              for (Pair<FireHydrant, Interval> pair : indexesToPersist) {
+                metrics.incrementRowOutputCount(persistHydrant(pair.lhs, schema, pair.rhs, commitRunnable.getMetadata()));
               }
               commitRunnable.run();
             }
@@ -429,7 +478,7 @@ public class RealtimePlumber implements Plumber
               synchronized (hydrant) {
                 if (!hydrant.hasSwapped()) {
                   log.info("Hydrant[%s] hasn't swapped yet, swapping. Sink[%s]", hydrant, sink);
-                  final int rowCount = persistHydrant(hydrant, schema, interval);
+                  final int rowCount = persistHydrant(hydrant, schema, interval, null);
                   metrics.incrementRowOutputCount(rowCount);
                 }
               }
@@ -953,8 +1002,9 @@ public class RealtimePlumber implements Plumber
    *
    * @return the number of rows persisted
    */
-  protected int persistHydrant(FireHydrant indexToPersist, DataSchema schema, Interval interval)
+  protected int persistHydrant(FireHydrant indexToPersist, DataSchema schema, Interval interval, Object commitMetaData)
   {
+  	log.info("DELETE about to persist hydrant with commitMetaData [%s]", commitMetaData);
     synchronized (indexToPersist) {
       if (indexToPersist.hasSwapped()) {
         log.info(
@@ -976,12 +1026,15 @@ public class RealtimePlumber implements Plumber
         final File persistedFile;
         final IndexSpec indexSpec = config.getIndexSpec();
         if (config.isPersistInHeap()) {
+        	log.info("DELETE about to call IndexMaker with commitMetaData [%s]", commitMetaData);
           persistedFile = IndexMaker.persist(
               indexToPersist.getIndex(),
               new File(computePersistDir(schema, interval), String.valueOf(indexToPersist.getCount())),
+              commitMetaData,
               indexSpec
           );
         } else {
+        	log.info("DELETE about to call IndexMerger with commitMetaData [%s]", commitMetaData);
           persistedFile = IndexMerger.persist(
               indexToPersist.getIndex(),
               new File(computePersistDir(schema, interval), String.valueOf(indexToPersist.getCount())),
