@@ -71,8 +71,6 @@ import io.druid.segment.data.IndexedInts;
 import io.druid.segment.data.IndexedIterable;
 import io.druid.segment.data.IndexedMultivalue;
 import io.druid.segment.data.IndexedRTree;
-import io.druid.segment.data.JacksonSerializedObject;
-import io.druid.segment.data.SimpleJacksonSerializedObject;
 import io.druid.segment.data.VSizeIndexed;
 import io.druid.segment.data.VSizeIndexedInts;
 import io.druid.segment.serde.BitmapIndexColumnPartSupplier;

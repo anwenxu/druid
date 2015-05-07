@@ -266,9 +266,10 @@ public class RealtimeManagerTest
     }
 
     @Override
-    public void startJob()
+    public Object startJob()
     {
       startedJob = true;
+      return null;
     }
 
     @Override

@@ -299,6 +299,7 @@ public class RealtimeManager implements QuerySegmentWalker
       boolean stop = false;
       while (true) {
       	if (stop) {
+      		log.info("firehoseV2 stop");
       		break;
       	}
         InputRow inputRow = null;
@@ -327,6 +328,7 @@ public class RealtimeManager implements QuerySegmentWalker
             log.debug("Throwing away event[%s]", inputRow);
 
             if (indexLimitExceeded || System.currentTimeMillis() > nextFlush) {
+            	log.info("firehoseV2 plumber persist now cur time [%s], previousFlush [%s]", System.currentTimeMillis(), nextFlush);
               plumber.persist(firehose.makeCommitter());
               nextFlush = new DateTime().plus(intermediatePersistPeriod).getMillis();
             }
@@ -335,6 +337,7 @@ public class RealtimeManager implements QuerySegmentWalker
           }
           final Sink sink = plumber.getSink(inputRow.getTimestampFromEpoch());
           if ((sink != null && !sink.canAppendRow()) || System.currentTimeMillis() > nextFlush) {
+          	log.info("firehoseV2 plumber persist with sink now cur time [%s], previousFlush [%s]", System.currentTimeMillis(), nextFlush);
             plumber.persist(firehose.makeCommitter());
             nextFlush = new DateTime().plus(intermediatePersistPeriod).getMillis();
           }

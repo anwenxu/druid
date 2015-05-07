@@ -139,7 +139,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 	}
 	*/
 	private void loadOffsetFromPreviousMetaData(Object lastCommit) {
-		log.info("DELETE loading Offsets from previous metadata ", this.feed, this.clientId );
+		log.info("DELETE loading Offsets from previous metadata " );
 		if (lastCommit == null) {
 			return;
 		}
@@ -257,13 +257,16 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 			@Override
 			public void start() throws Exception {
 				//TODO
+				log.info("firehoseV2 start");
 			}
 			@Override
 			public boolean advance() {
 				if(stop){
+					log.info("firehoseV2 stop");
 					return false;
 				}
 				lastOffsetPartitions.put(msg.getPartition(), msg.offset());
+				log.info("firehoseV2 advance with partition offset [%s] moved to [%s]", msg.getPartition(), msg.offset() );
 				return true;
 			}
 
@@ -316,7 +319,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 				};
 				MyCommitter committer = new MyCommitter();
 				committer.setMetaData(thisCommit);
-				log.info("DELETE setting in thisCommit");
+				log.info("DELETE setting in thisCommit [%s]", thisCommit);
 				return committer;
 			}
 

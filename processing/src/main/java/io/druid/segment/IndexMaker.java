@@ -96,11 +96,8 @@ import java.nio.LongBuffer;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
-<<<<<<< HEAD
 import java.util.Collections;
-=======
 import java.util.HashSet;
->>>>>>> 0505, first prod test version
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -352,6 +349,7 @@ public class IndexMaker
         progress,
         Lists.newArrayList(adapter.getDimensionNames()),
         Lists.newArrayList(adapter.getMetricNames()),
+        adapter.getMetaData(),
         new Function<ArrayList<Iterable<Rowboat>>, Iterable<Rowboat>>()
         {
           @Nullable
@@ -551,7 +549,6 @@ public class IndexMaker
     makeMetricColumns(v9Smoosher, progress, theRows, mergedMetrics, valueTypes, metricTypeNames, rowCount, indexSpec);
 
     progress.progress();
-<<<<<<< HEAD
     makeIndexBinary(
         v9Smoosher,
         adapters,
@@ -559,12 +556,10 @@ public class IndexMaker
         mergedDimensions,
         mergedMetrics,
         skippedDimensions,
+        commitMetaData,
         progress,
         indexSpec
     );
-=======
-    makeIndexBinary(v9Smoosher, adapters, outDir, mergedDimensions, mergedMetrics, skippedDimensions, commitMetaData, progress, indexSpec);
->>>>>>> 0505, first prod test version
 
     v9Smoosher.close();
 
@@ -1401,9 +1396,9 @@ public class IndexMaker
     	log.info("DELETE about to add metadata to index.drd [%s]", commitMetaData);
     	metaDatas.add(commitMetaData.toString());
     }
-    GenericIndexed<String> metas = GenericIndexed.fromIterable(metaDatas, GenericIndexed.stringStrategy);
-    GenericIndexed<String> cols = GenericIndexed.fromIterable(finalColumns, GenericIndexed.stringStrategy);
-    GenericIndexed<String> dims = GenericIndexed.fromIterable(finalDimensions, GenericIndexed.stringStrategy);
+    GenericIndexed<String> metas = GenericIndexed.fromIterable(metaDatas, GenericIndexed.STRING_STRATEGY);
+    GenericIndexed<String> cols = GenericIndexed.fromIterable(finalColumns, GenericIndexed.STRING_STRATEGY);
+    GenericIndexed<String> dims = GenericIndexed.fromIterable(finalDimensions, GenericIndexed.STRING_STRATEGY);
 
     final String bitmapSerdeFactoryType = mapper.writeValueAsString(indexSpec.getBitmapSerdeFactory());
     final long numBytes = metas.getSerializedSize()
