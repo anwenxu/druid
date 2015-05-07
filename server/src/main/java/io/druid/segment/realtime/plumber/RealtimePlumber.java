@@ -705,7 +705,7 @@ public class RealtimePlumber implements Plumber
       		if (attr.creationTime().toMillis() > latestCommitTime) {
       			latestCommitTime = attr.creationTime().toMillis();
       			metaData = queryableIndex.getMetaData();
-      			log.info("Init MetaData loader :: assigning metaData with latestCommitTime [%s]", latestCommitTime);
+      			log.info("Init MetaData loader :: assigning metaData [%s] with latestCommitTime [%s]", metaData, latestCommitTime);
       		}
           hydrants.add(
               new FireHydrant(
@@ -742,116 +742,6 @@ public class RealtimePlumber implements Plumber
     }
 		return metaData;
   }
-
-  
-  protected void bootstrapSinksFromDisk(final FirehoseV2 firehose)
-  {/*
-    final VersioningPolicy versioningPolicy = config.getVersioningPolicy();
-
-    File baseDir = computeBaseDir(schema);
-    if (baseDir == null || !baseDir.exists()) {
-      return;
-    }
-
-    File[] files = baseDir.listFiles();
-    if (files == null) {
-      return;
-    }
-
-    for (File sinkDir : files) {
-      Interval sinkInterval = new Interval(sinkDir.getName().replace("_", "/"));
-
-      //final File[] sinkFiles = sinkDir.listFiles();
-      // To avoid reading and listing of "merged" dir
-      final File[] sinkFiles = sinkDir.listFiles(
-          new FilenameFilter()
-          {
-            @Override
-            public boolean accept(File dir, String fileName)
-            {
-              try {
-            	  if(firehose!=null){
-            		BasicFileAttributes attr = Files.readAttributes(Paths.get(dir.getPath()+File.separator+fileName), BasicFileAttributes.class);
-            		log.info("checking files younger than last offset commit time, last offset time " + firehose.getLastOffsetCommitTime()+"file create time " + attr.creationTime().toMillis());
-            		if(attr.creationTime().toMillis() > firehose.getLastOffsetCommitTime()){
-            			log.info("file "+ dir.getAbsolutePath()+File.separator+fileName+" should not appear");
-            		}
-      	            return !(Ints.tryParse(fileName) == null) && (! (firehose.getLastOffsetCommitTime() > 0) || !(attr.creationTime().toMillis() > firehose.getLastOffsetCommitTime()));
-            	  }else{
-            		return !(Ints.tryParse(fileName) == null);
-            	  }
-            } catch (IOException e) {
-	            log.error("exception happens when fetching meta"+ e.getMessage());
-	            return false;
-            }
-              
-            }
-          }
-      );
-      Arrays.sort(
-          sinkFiles,
-          new Comparator<File>()
-          {
-            @Override
-            public int compare(File o1, File o2)
-            {
-              try {
-                return Ints.compare(Integer.parseInt(o1.getName()), Integer.parseInt(o2.getName()));
-              }
-              catch (NumberFormatException e) {
-                log.error(e, "Couldn't compare as numbers? [%s][%s]", o1, o2);
-                return o1.compareTo(o2);
-              }
-            }
-          }
-      );
-
-      try {
-        List<FireHydrant> hydrants = Lists.newArrayList();
-        List<FireHydrant> sinkHydrants = Lists.newArrayList();
-        for (File segmentDir : sinkFiles) {
-          log.info("Loading previously persisted segment at [%s]", segmentDir);
-
-          // Although this has been tackled at start of this method.
-          // Just a doubly-check added to skip "merged" dir. from being added to hydrants
-          // If 100% sure that this is not needed, this check can be removed.
-          if (Ints.tryParse(segmentDir.getName()) == null) {
-            continue;
-          }
-          hydrants.add(
-              new FireHydrant(
-                  new QueryableIndexSegment(
-                      DataSegment.makeDataSegmentIdentifier(
-                          schema.getDataSource(),
-                          sinkInterval.getStart(),
-                          sinkInterval.getEnd(),
-                          versioningPolicy.getVersion(sinkInterval),
-                          config.getShardSpec()
-                      ),
-                      IndexIO.loadIndex(segmentDir)
-                  ),
-                  Integer.parseInt(segmentDir.getName())
-              )
-          );
-        }
-
-        Sink currSink = new Sink(sinkInterval, schema, config, versioningPolicy.getVersion(sinkInterval), hydrants);
-        sinks.put(sinkInterval.getStartMillis(), currSink);
-        sinkTimeline.add(
-            currSink.getInterval(),
-            currSink.getVersion(),
-            new SingleElementPartitionChunk<Sink>(currSink)
-        );
-
-        segmentAnnouncer.announceSegment(currSink.getSegment());
-      }
-      catch (IOException e) {
-        log.makeAlert(e, "Problem loading sink[%s] from disk.", schema.getDataSource())
-           .addData("interval", sinkInterval)
-           .emit();
-      }
-    }
-  */}
 
   protected void startPersistThread()
   {
