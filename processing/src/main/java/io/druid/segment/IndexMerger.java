@@ -50,7 +50,6 @@ import com.metamx.common.guava.MergeIterable;
 import com.metamx.common.guava.nary.BinaryFn;
 import com.metamx.common.io.smoosh.Smoosh;
 import com.metamx.common.logger.Logger;
-
 import io.druid.collections.CombiningIterable;
 import io.druid.common.guava.FileOutputSupplier;
 import io.druid.common.guava.GuavaUtils;
@@ -80,13 +79,11 @@ import io.druid.segment.incremental.IncrementalIndexAdapter;
 import io.druid.segment.serde.ComplexMetricColumnSerializer;
 import io.druid.segment.serde.ComplexMetricSerde;
 import io.druid.segment.serde.ComplexMetrics;
-
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
 import javax.annotation.Nullable;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

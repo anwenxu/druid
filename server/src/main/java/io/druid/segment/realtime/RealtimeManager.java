@@ -29,7 +29,6 @@ import com.metamx.common.lifecycle.LifecycleStart;
 import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.parsers.ParseException;
 import com.metamx.emitter.EmittingLogger;
-
 import io.druid.data.input.Firehose;
 import io.druid.data.input.FirehoseV2;
 import io.druid.data.input.InputRow;
@@ -48,7 +47,6 @@ import io.druid.segment.indexing.DataSchema;
 import io.druid.segment.indexing.RealtimeTuningConfig;
 import io.druid.segment.realtime.plumber.Plumber;
 import io.druid.segment.realtime.plumber.Sink;
-
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.joda.time.Period;
@@ -183,7 +181,7 @@ public class RealtimeManager implements QuerySegmentWalker
     private final FireDepartment fireDepartment;
     private final FireDepartmentMetrics metrics;
     private final RealtimeTuningConfig config;
- 
+
     private volatile Closeable firehose = null;
     private volatile Plumber plumber = null;
     private volatile boolean normalExit = true;

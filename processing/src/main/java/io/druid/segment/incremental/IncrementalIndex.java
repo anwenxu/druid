@@ -70,6 +70,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class IncrementalIndex<AggregatorType> implements Iterable<Row>, Closeable
 {
   private volatile DateTime maxIngestedEventTime;
+
   protected static ColumnSelectorFactory makeColumnSelectorFactory(
       final AggregatorFactory agg,
       final ThreadLocal<InputRow> in,

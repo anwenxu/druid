@@ -36,7 +36,6 @@ import com.metamx.common.guava.FunctionalIterable;
 import com.metamx.emitter.EmittingLogger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
-
 import io.druid.client.FilteredServerView;
 import io.druid.client.ServerView;
 import io.druid.common.guava.ThreadRenamingCallable;
@@ -76,7 +75,6 @@ import io.druid.timeline.DataSegment;
 import io.druid.timeline.TimelineObjectHolder;
 import io.druid.timeline.VersionedIntervalTimeline;
 import io.druid.timeline.partition.SingleElementPartitionChunk;
-
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -84,7 +82,6 @@ import org.joda.time.Interval;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.FilenameFilter;
