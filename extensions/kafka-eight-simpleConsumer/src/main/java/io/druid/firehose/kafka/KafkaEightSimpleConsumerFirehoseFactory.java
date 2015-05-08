@@ -126,20 +126,8 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 		this.feed = feed;
 		this.queueBufferLength = queueBufferLength;
 		this.offsetPosition = offsetPosition;
-/*		try {
-			md = MessageDigest.getInstance("MD5");
-		} catch (NoSuchAlgorithmException e) {
-			log.info("no md5 algorithm");
-		}*/
 	}
-
-/*	private String getMd5String(String content){
-		md.update(content.getBytes(), 0, content.length());
-		return new BigInteger(1, md.digest()).toString(16);
-	}
-	*/
 	private void loadOffsetFromPreviousMetaData(Object lastCommit) {
-		log.info("DELETE loading Offsets from previous metadata " );
 		if (lastCommit == null) {
 			return;
 		}
@@ -150,7 +138,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 				String key = keysItr.next();
 	         int partitionId = Integer.parseInt(key);
 	         Long offset = lastCommitObject.getLong(key);
-	         log.info(" Recover lastCommit partitionId [%s], offset [%s]", partitionId, offset);
+	         log.debug("Recover last commit information partitionId [%s], offset [%s]", partitionId, offset);
 	         if (lastOffsetPartitions.containsKey(partitionId)) {
 			        if(lastOffsetPartitions.get(partitionId) < offset) {
 			        	lastOffsetPartitions.put(partitionId, offset);
@@ -171,7 +159,6 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 	@Override
 	public FirehoseV2 connect(final ByteBufferInputRowParser firehoseParser, Object lastCommit) throws IOException 
 	{
-		log.info("DELETE connecting Firehose V2");
 		Set<String> newDimExclus = Sets.union(
 				firehoseParser.getParseSpec().getDimensionsSpec().getDimensionExclusions(),
 		        Sets.newHashSet("feed")
@@ -198,7 +185,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 
 			@Override
 			public void run() {
-				log.info("start running parition [%s] thread name : [%s]",partitionId, getName());
+				log.info("Start running parition [%s] thread name : [%s]",partitionId, getName());
 				try {
 					Long offset = lastOffsetPartitions.get(partitionId);
 					if (offset == null) {
@@ -206,8 +193,6 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 					}
 					while (!isInterrupted()) {
 						try {
-							log.debug("start fetching " + partitionId
-							        + " feed " + feed);
 							Iterable<BytesMessageWithOffset> msgs = simpleConsumerMap
 							        .get(partitionId).fetch(offset, 10000);
 							int count = 0;
@@ -216,7 +201,6 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 								messageQueue.put(msgWithOffset);
 								count++;
 							}
-							log.debug("fetch [%s] msgs for partition [%s] in one time", count, partitionId);
 						} catch (InterruptedException e) {
 							log.error("Intrerupted when fecthing data");
 							return;
@@ -232,7 +216,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 
 		//loadOffsetFromDisk();
 		loadOffsetFromPreviousMetaData(lastCommit);
-		log.info("kicking off all consumer");
+		log.info("Kicking off all consumer");
 		final Iterator<BytesMessageWithOffset> iter = messageQueue.iterator();
 
 		for (String partitionStr : Arrays.asList(partitionIdList.split(","))) {
@@ -245,21 +229,18 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 			consumerThreadList.add(t);
 			t.start();
 		}
-		log.info("all consumer started");
+		log.info("All consumer started");
 		return new FirehoseV2() {
 			@Override
 			public void start() throws Exception {
 				//TODO
-				log.info("firehoseV2 start");
 			}
 			@Override
-			public boolean advance() {
+			public boolean advance() { 
 				if(stop){
-					log.debug("firehoseV2 stop");
 					return false;
 				}
 				lastOffsetPartitions.put(msg.getPartition(), msg.offset());
-				log.debug("firehoseV2 advance with partition offset [%s] moved to [%s]", msg.getPartition(), msg.offset() );
 				return true;
 			}
 
@@ -268,7 +249,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 				try {
 					msg = messageQueue.take();
 				} catch (InterruptedException e) {
-					log.info(" interrupted when taken from queue");
+					log.info("Interrupted when taken from queue");
 					currMsg = null;
 				}
 				final byte[] message = msg.message();
@@ -276,9 +257,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 				if (message == null) {
 					currMsg = null;
 				}
-				currMsg = theParser.parse(ByteBuffer.wrap(message));
-				log.debug("firehoseV2 curMsg [%s]", currMsg.toString());
-				
+				currMsg = theParser.parse(ByteBuffer.wrap(message));				
 				return currMsg;
 			}
 
@@ -309,25 +288,23 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 					@Override
 					public void run() {
 						// TODO this makes the commit
-						log.info("DELETE runnable to make the commit");
 					}
 				};
 				MyCommitter committer = new MyCommitter();
 				committer.setMetaData(thisCommit);
-				log.info("DELETE setting in thisCommit [%s]", thisCommit);
 				return committer;
 			}
 
 			@Override
 			public void close() throws IOException {
-				log.info("stoping kafka 0.8 simple firehose");
+				log.info("Stoping kafka 0.8 simple firehose");
 				stop = true;
 				for (Thread t : consumerThreadList) {
 					try {
 						t.interrupt();
 						t.join(3000);
 					} catch (InterruptedException e) {
-						log.info("interupted when stoping ");
+						log.info("Interupted when stoping ");
 					}
 				}
 			}

@@ -166,9 +166,7 @@ public class IndexIO
   public static QueryableIndex loadIndex(File inDir) throws IOException
   {
     final int version = SegmentUtils.getVersionFromDir(inDir);
-    log.info("DELETE in loadIndex");
     final IndexLoader loader = indexLoaders.get(version);
-    log.info("DELETE got loader of version [%d]", version);
     if (loader != null) {
       return loader.load(inDir);
     } else {
@@ -850,7 +848,6 @@ public class IndexIO
       columns.addAll(Lists.newArrayList(dims9));
       columns.addAll(Lists.newArrayList(availableMetrics));
       List<String> metaDatas = new ArrayList<String>();
-      log.info("DELETE faking null commitMetaData for v8 to v9 conversion");
       GenericIndexed<String> metas = GenericIndexed.fromIterable(metaDatas, GenericIndexed.STRING_STRATEGY);
       GenericIndexed<String> cols = GenericIndexed.fromIterable(columns, GenericIndexed.STRING_STRATEGY);
 
@@ -886,7 +883,6 @@ public class IndexIO
     @Override
     public QueryableIndex load(File inDir) throws IOException
     {
-    	log.info("DELETE in legacy index loader");
       MMappedIndex index = legacyHandler.mapDir(inDir);
 
       Map<String, Column> columns = Maps.newHashMap();
@@ -983,7 +979,6 @@ public class IndexIO
     public QueryableIndex load(File inDir) throws IOException
     {
       log.debug("Mapping v9 index[%s]", inDir);
-      log.info("DELETE in V9Index loader");
       long startTime = System.currentTimeMillis();
 
       final int theVersion = Ints.fromByteArray(Files.toByteArray(new File(inDir, "version.bin")));
@@ -1011,7 +1006,6 @@ public class IndexIO
       Object commitMetaData = null;
       for (String meta : metas) {
       	commitMetaData = (Object) meta;
-      	log.info("DELETE loaded commitMetaData [%s]", commitMetaData);
       }
       /**
        * This is a workaround for the fact that in v8 segments, we have no information about the type of bitmap
