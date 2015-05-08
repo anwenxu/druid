@@ -247,6 +247,7 @@ public class TestIndex
 
   public static QueryableIndex persistRealtimeAndLoadMMapped(IncrementalIndex index)
   {
+  	log.info("DELETE about to persistRealtimeAndLoadMMapped with incrementalIndex");
     try {
       File someTmpFile = File.createTempFile("billy", "yay");
       someTmpFile.delete();

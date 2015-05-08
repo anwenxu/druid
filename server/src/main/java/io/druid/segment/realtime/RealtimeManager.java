@@ -319,6 +319,7 @@ public class RealtimeManager implements QuerySegmentWalker
           try {
             lateEvent = plumber.add(inputRow) == -1;
           }
+        
           catch (IndexSizeExceededException e) {
             log.info("Index limit exceeded: %s", e.getMessage());
             indexLimitExceeded = true;

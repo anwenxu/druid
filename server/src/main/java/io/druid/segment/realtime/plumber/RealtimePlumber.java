@@ -200,6 +200,7 @@ public class RealtimePlumber implements Plumber
   {
     final Sink sink = getSink(row.getTimestampFromEpoch());
     if (sink == null) {
+    	log.debug("DELETE sink is null row time stamp [%s]", row.getTimestampFromEpoch());
       return -1;
     }
 
@@ -209,6 +210,7 @@ public class RealtimePlumber implements Plumber
   public Sink getSink(long timestamp)
   {
     if (!rejectionPolicy.accept(timestamp)) {
+    	log.debug("rejection for this timestamp");
       return null;
     }
 
@@ -805,6 +807,16 @@ public class RealtimePlumber implements Plumber
 
     final long windowMillis = windowPeriod.toStandardDuration().getMillis();
     log.info("Starting merge and push.");
+    log.debug("monitor DELETE windowMilli [%s]     rejection.curMax [%s]", windowMillis,  rejectionPolicy.getCurrMaxTime()
+                               .getMillis());
+    log.debug("date object DELET [%s]",  new DateTime(
+            Math.max(
+                windowMillis,
+                rejectionPolicy.getCurrMaxTime()
+                               .getMillis()
+            )
+            - windowMillis
+        ));
     DateTime minTimestampAsDate = segmentGranularity.truncate(
         new DateTime(
             Math.max(
