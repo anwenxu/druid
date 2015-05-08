@@ -167,7 +167,7 @@ public class SchemalessIndex
       if (mergedIndex != null) {
         return mergedIndex;
       }
-
+      log.info("DELETE about to getMergedIncrementalIndex");
       try {
         IncrementalIndex top = makeIncrementalIndex("druid.sample.json.top", METRIC_AGGS);
         IncrementalIndex bottom = makeIncrementalIndex("druid.sample.json.bottom", METRIC_AGGS);

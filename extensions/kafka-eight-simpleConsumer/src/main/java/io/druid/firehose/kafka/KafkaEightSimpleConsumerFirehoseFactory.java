@@ -143,35 +143,28 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 		if (lastCommit == null) {
 			return;
 		}
-		ObjectMapper mapper = new ObjectMapper();
-		Map<?, ?> map = null;
 		try {
-			map = mapper.readValue(lastCommit.toString(), HashMap.class);
-			// display to console
-			log.info("Loading metaData form persisted files [%s]", map.toString());
+			JSONObject lastCommitObject = new JSONObject(lastCommit.toString());
+			Iterator<String> keysItr = lastCommitObject.keys();
+			while(keysItr.hasNext()) {
+				String key = keysItr.next();
+	         int partitionId = Integer.parseInt(key);
+	         Long offset = lastCommitObject.getLong(key);
+	         log.info(" Recover lastCommit partitionId [%s], offset [%s]", partitionId, offset);
+	         if (lastOffsetPartitions.containsKey(partitionId)) {
+			        if(lastOffsetPartitions.get(partitionId) < offset) {
+			        	lastOffsetPartitions.put(partitionId, offset);
+			        }
+					} else {
+						lastOffsetPartitions.put(partitionId, offset);
+					}
+	    
+	     }
 		} catch (Exception e) {
-			log.error("Failed to load metaData from persisted files [%s]", lastCommit.toString());
-			return;
+			log.error("Fail to load offset from previous meta data [%s]", lastCommit);
 		}
 
-		Iterator<?> mapIter = map.keySet().iterator();
-		while(mapIter.hasNext()) {
-			try {
-				String keyName = (String) mapIter.next();
-				String keyVal = (String) map.get(keyName);
-			
-				if (lastOffsetPartitions.containsKey(Integer.parseInt(keyName))) {
-		        if(lastOffsetPartitions.get(Integer.parseInt(keyName)) < Long.parseLong(keyVal)) {
-		        	lastOffsetPartitions.put(Integer.parseInt(keyName),Long.parseLong(keyVal));
-		        }
-				} else {
-					lastOffsetPartitions.put(Integer.parseInt(keyName),Long.parseLong(keyVal));
-				}
-			} catch (ClassCastException e) {
-				log.error("Failed to update partition offsets");
-			}
-		}
-		log.info("offset map: " + lastOffsetPartitions);
+		log.info("Loaded offset map: " + lastOffsetPartitions);
 
 	}
 
@@ -262,11 +255,11 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 			@Override
 			public boolean advance() {
 				if(stop){
-					log.info("firehoseV2 stop");
+					log.debug("firehoseV2 stop");
 					return false;
 				}
 				lastOffsetPartitions.put(msg.getPartition(), msg.offset());
-				log.info("firehoseV2 advance with partition offset [%s] moved to [%s]", msg.getPartition(), msg.offset() );
+				log.debug("firehoseV2 advance with partition offset [%s] moved to [%s]", msg.getPartition(), msg.offset() );
 				return true;
 			}
 
@@ -284,6 +277,8 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 					currMsg = null;
 				}
 				currMsg = theParser.parse(ByteBuffer.wrap(message));
+				log.debug("firehoseV2 curMsg [%s]", currMsg.toString());
+				
 				return currMsg;
 			}
 
