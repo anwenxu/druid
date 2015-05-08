@@ -21,7 +21,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.metamx.common.Granularity;
 import com.metamx.common.ISE;
-
 import io.druid.data.input.Firehose;
 import io.druid.data.input.FirehoseV2;
 import io.druid.data.input.FirehoseFactory;
@@ -45,7 +44,6 @@ import io.druid.segment.realtime.plumber.PlumberSchool;
 import io.druid.segment.realtime.plumber.Sink;
 import io.druid.utils.Runnables;
 import junit.framework.Assert;
-
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.joda.time.Period;

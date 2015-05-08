@@ -47,7 +47,6 @@ import com.metamx.common.io.smoosh.SmooshedFileMapper;
 import com.metamx.common.io.smoosh.SmooshedWriter;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.EmittingLogger;
-
 import io.druid.common.utils.SerializerUtils;
 import io.druid.guice.ConfigProvider;
 import io.druid.guice.GuiceInjectors;
@@ -83,7 +82,6 @@ import io.druid.segment.serde.FloatGenericColumnSupplier;
 import io.druid.segment.serde.LongGenericColumnPartSerde;
 import io.druid.segment.serde.LongGenericColumnSupplier;
 import io.druid.segment.serde.SpatialIndexColumnPartSupplier;
-
 import org.joda.time.Interval;
 
 import java.io.ByteArrayOutputStream;
@@ -166,7 +164,9 @@ public class IndexIO
   public static QueryableIndex loadIndex(File inDir) throws IOException
   {
     final int version = SegmentUtils.getVersionFromDir(inDir);
+
     final IndexLoader loader = indexLoaders.get(version);
+
     if (loader != null) {
       return loader.load(inDir);
     } else {
@@ -818,7 +818,6 @@ public class IndexIO
       final ByteBuffer indexBuffer = v8SmooshedFiles.mapFile("index.drd");
 
       indexBuffer.get(); // Skip the version byte
-
       final GenericIndexed<String> dims8 = GenericIndexed.read(
           indexBuffer, GenericIndexed.STRING_STRATEGY
       );
