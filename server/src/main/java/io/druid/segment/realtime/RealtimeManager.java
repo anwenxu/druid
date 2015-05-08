@@ -22,7 +22,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import com.metamx.common.guava.CloseQuietly;
@@ -44,8 +43,6 @@ import io.druid.query.QuerySegmentWalker;
 import io.druid.query.QueryToolChest;
 import io.druid.query.SegmentDescriptor;
 import io.druid.query.UnionQueryRunner;
-import io.druid.segment.IndexIO;
-import io.druid.segment.QueryableIndex;
 import io.druid.segment.incremental.IndexSizeExceededException;
 import io.druid.segment.indexing.DataSchema;
 import io.druid.segment.indexing.RealtimeTuningConfig;
@@ -57,14 +54,8 @@ import org.joda.time.Interval;
 import org.joda.time.Period;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.nio.file.Files;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -277,8 +268,9 @@ public class RealtimeManager implements QuerySegmentWalker
         throw e;
       } catch (Exception e1)
       {
-	      // TODO Auto-generated catch block
-	      e1.printStackTrace();
+      	log.makeAlert(e1, "Exception aborted realtime processing[%s]", fireDepartment.getDataSchema().getDataSource())
+        .emit();
+      	normalExit = false;
       }
       finally {
         CloseQuietly.close(firehose);
@@ -329,7 +321,6 @@ public class RealtimeManager implements QuerySegmentWalker
             log.debug("Throwing away event[%s]", inputRow);
 
             if (indexLimitExceeded || System.currentTimeMillis() > nextFlush) {
-            	log.info("firehoseV2 plumber persist now cur time [%s], previousFlush [%s]", System.currentTimeMillis(), nextFlush);
               plumber.persist(firehose.makeCommitter());
               nextFlush = new DateTime().plus(intermediatePersistPeriod).getMillis();
             }
@@ -338,7 +329,6 @@ public class RealtimeManager implements QuerySegmentWalker
           }
           final Sink sink = plumber.getSink(inputRow.getTimestampFromEpoch());
           if ((sink != null && !sink.canAppendRow()) || System.currentTimeMillis() > nextFlush) {
-          	log.info("firehoseV2 plumber persist with sink now cur time [%s], previousFlush [%s]", System.currentTimeMillis(), nextFlush);
             plumber.persist(firehose.makeCommitter());
             nextFlush = new DateTime().plus(intermediatePersistPeriod).getMillis();
           }

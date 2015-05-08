@@ -21,7 +21,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.metamx.common.ISE;
-import com.metamx.emitter.EmittingLogger;
 
 import io.druid.data.input.InputRow;
 import io.druid.granularity.QueryGranularity;
@@ -40,7 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class OnheapIncrementalIndex extends IncrementalIndex<Aggregator>
 {
-	private static final EmittingLogger log = new EmittingLogger(OnheapIncrementalIndex.class);
   private final ConcurrentHashMap<Integer, Aggregator[]> aggregators = new ConcurrentHashMap<>();
   private final ConcurrentNavigableMap<TimeAndDims, Integer> facts = new ConcurrentSkipListMap<>();
   private final AtomicInteger indexIncrement = new AtomicInteger(0);
@@ -175,7 +173,6 @@ public class OnheapIncrementalIndex extends IncrementalIndex<Aggregator>
 
     in.set(null);
 
-    log.debug("on heap [%s]", numEntries.get());
     return numEntries.get();
   }
 
