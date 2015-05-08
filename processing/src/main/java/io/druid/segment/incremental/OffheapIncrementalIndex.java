@@ -20,7 +20,6 @@ package io.druid.segment.incremental;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.metamx.common.ISE;
-import com.metamx.emitter.EmittingLogger;
 
 import io.druid.collections.ResourceHolder;
 import io.druid.collections.StupidPool;
@@ -54,7 +53,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class OffheapIncrementalIndex extends IncrementalIndex<BufferAggregator>
 {
-	private static final EmittingLogger log = new EmittingLogger(OffheapIncrementalIndex.class);
   private static final long STORE_CHUNK_SIZE;
 
   static
@@ -210,7 +208,6 @@ public class OffheapIncrementalIndex extends IncrementalIndex<BufferAggregator>
       }
     }
     in.set(null);
-    log.debug("on heap [%s]", numEntries.get());
     return numEntries.get();
   }
 
