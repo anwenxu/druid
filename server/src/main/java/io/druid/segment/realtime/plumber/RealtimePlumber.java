@@ -200,7 +200,6 @@ public class RealtimePlumber implements Plumber
   {
     final Sink sink = getSink(row.getTimestampFromEpoch());
     if (sink == null) {
-    	log.debug("DELETE sink is null row time stamp [%s]", row.getTimestampFromEpoch());
       return -1;
     }
 
@@ -210,7 +209,6 @@ public class RealtimePlumber implements Plumber
   public Sink getSink(long timestamp)
   {
     if (!rejectionPolicy.accept(timestamp)) {
-    	log.debug("rejection for this timestamp");
       return null;
     }
 
@@ -703,11 +701,10 @@ public class RealtimePlumber implements Plumber
           }
           QueryableIndex queryableIndex = IndexIO.loadIndex(segmentDir);
       		BasicFileAttributes attr = Files.readAttributes(segmentDir.toPath(), BasicFileAttributes.class);
-      		log.info("Init MetaData loader :: DELETE file attr creation time [%s]", attr.creationTime());
       		if (attr.creationTime().toMillis() > latestCommitTime) {
       			latestCommitTime = attr.creationTime().toMillis();
       			metaData = queryableIndex.getMetaData();
-      			log.info("Init MetaData loader :: assigning metaData [%s] with latestCommitTime [%s]", metaData, latestCommitTime);
+      			log.info("Found metaData [%s] with latestCommitTime [%s]", metaData, latestCommitTime);
       		}
           hydrants.add(
               new FireHydrant(
@@ -807,16 +804,6 @@ public class RealtimePlumber implements Plumber
 
     final long windowMillis = windowPeriod.toStandardDuration().getMillis();
     log.info("Starting merge and push.");
-    log.debug("monitor DELETE windowMilli [%s]     rejection.curMax [%s]", windowMillis,  rejectionPolicy.getCurrMaxTime()
-                               .getMillis());
-    log.debug("date object DELET [%s]",  new DateTime(
-            Math.max(
-                windowMillis,
-                rejectionPolicy.getCurrMaxTime()
-                               .getMillis()
-            )
-            - windowMillis
-        ));
     DateTime minTimestampAsDate = segmentGranularity.truncate(
         new DateTime(
             Math.max(
@@ -830,7 +817,7 @@ public class RealtimePlumber implements Plumber
     long minTimestamp = minTimestampAsDate.getMillis();
 
     log.info("Found [%,d] segments. Attempting to hand off segments that start before [%s].", sinks.size(), minTimestampAsDate);
-
+//TODO for messageTime, all sinks will be rejected
     List<Map.Entry<Long, Sink>> sinksToPush = Lists.newArrayList();
     for (Map.Entry<Long, Sink> entry : sinks.entrySet()) {
       final Long intervalStart = entry.getKey();
@@ -906,7 +893,6 @@ public class RealtimePlumber implements Plumber
    */
   protected int persistHydrant(FireHydrant indexToPersist, DataSchema schema, Interval interval, Object commitMetaData)
   {
-  	log.info("DELETE about to persist hydrant with commitMetaData [%s]", commitMetaData);
     synchronized (indexToPersist) {
       if (indexToPersist.hasSwapped()) {
         log.info(
@@ -917,9 +903,10 @@ public class RealtimePlumber implements Plumber
       }
 
       log.info(
-          "DataSource[%s], Interval[%s], persisting Hydrant[%s]",
+          "DataSource[%s], Interval[%s], Metadata [%s] persisting Hydrant[%s]",
           schema.getDataSource(),
           interval,
+          commitMetaData,
           indexToPersist
       );
       try {
@@ -928,7 +915,6 @@ public class RealtimePlumber implements Plumber
         final File persistedFile;
         final IndexSpec indexSpec = config.getIndexSpec();
         if (config.isPersistInHeap()) {
-        	log.info("DELETE about to call IndexMaker with commitMetaData [%s]", commitMetaData);
           persistedFile = IndexMaker.persist(
               indexToPersist.getIndex(),
               new File(computePersistDir(schema, interval), String.valueOf(indexToPersist.getCount())),
@@ -936,7 +922,6 @@ public class RealtimePlumber implements Plumber
               indexSpec
           );
         } else {
-        	log.info("DELETE about to call IndexMerger with commitMetaData [%s]", commitMetaData);
           persistedFile = IndexMerger.persist(
               indexToPersist.getIndex(),
               new File(computePersistDir(schema, interval), String.valueOf(indexToPersist.getCount())),
