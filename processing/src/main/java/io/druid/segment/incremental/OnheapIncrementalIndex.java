@@ -21,7 +21,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.metamx.common.ISE;
-
 import io.druid.data.input.InputRow;
 import io.druid.granularity.QueryGranularity;
 import io.druid.query.aggregation.Aggregator;
@@ -172,6 +171,7 @@ public class OnheapIncrementalIndex extends IncrementalIndex<Aggregator>
     }
 
     in.set(null);
+
 
     return numEntries.get();
   }

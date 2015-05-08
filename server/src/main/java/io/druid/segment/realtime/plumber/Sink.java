@@ -24,8 +24,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.metamx.common.IAE;
 import com.metamx.common.ISE;
-import com.metamx.emitter.EmittingLogger;
-
 import io.druid.data.input.InputRow;
 import io.druid.offheap.OffheapBufferPool;
 import io.druid.query.aggregation.AggregatorFactory;
@@ -37,13 +35,10 @@ import io.druid.segment.incremental.OnheapIncrementalIndex;
 import io.druid.segment.indexing.DataSchema;
 import io.druid.segment.indexing.RealtimeTuningConfig;
 import io.druid.segment.realtime.FireHydrant;
-import io.druid.segment.realtime.RealtimeManager;
 import io.druid.timeline.DataSegment;
-
 import org.joda.time.Interval;
 
 import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -61,7 +56,6 @@ public class Sink implements Iterable<FireHydrant>
   private final String version;
   private final CopyOnWriteArrayList<FireHydrant> hydrants = new CopyOnWriteArrayList<FireHydrant>();
   private volatile FireHydrant currHydrant;
-  private static final EmittingLogger log = new EmittingLogger(Sink.class);
   public Sink(
       Interval interval,
       DataSchema schema,
@@ -119,14 +113,12 @@ public class Sink implements Iterable<FireHydrant>
   public int add(InputRow row) throws IndexSizeExceededException
   {
     if (currHydrant == null) {
-    	log.debug("DELETE hydrant null");
       throw new IAE("No currHydrant but given row[%s]", row);
     }
 
     synchronized (hydrantLock) {
       IncrementalIndex index = currHydrant.getIndex();
       if (index == null) {
-      	log.debug("DELETE index null");
         return -1; // the hydrant was swapped without being replaced
       }
       return index.add(row);

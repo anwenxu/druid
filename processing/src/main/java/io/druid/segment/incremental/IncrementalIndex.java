@@ -28,8 +28,6 @@ import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.metamx.common.IAE;
 import com.metamx.common.ISE;
-import com.metamx.emitter.EmittingLogger;
-
 import io.druid.data.input.InputRow;
 import io.druid.data.input.MapBasedRow;
 import io.druid.data.input.Row;
@@ -51,12 +49,10 @@ import io.druid.segment.data.IndexedInts;
 import io.druid.segment.serde.ComplexMetricExtractor;
 import io.druid.segment.serde.ComplexMetricSerde;
 import io.druid.segment.serde.ComplexMetrics;
-
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
 import javax.annotation.Nullable;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -74,7 +70,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class IncrementalIndex<AggregatorType> implements Iterable<Row>, Closeable
 {
   private volatile DateTime maxIngestedEventTime;
-  private static final EmittingLogger log = new EmittingLogger(IncrementalIndex.class);
   protected static ColumnSelectorFactory makeColumnSelectorFactory(
       final AggregatorFactory agg,
       final ThreadLocal<InputRow> in,
@@ -404,7 +399,6 @@ public abstract class IncrementalIndex<AggregatorType> implements Iterable<Row>,
   {
     row = formatRow(row);
     if (row.getTimestampFromEpoch() < minTimestamp) {
-    	log.debug("minTimestamp not passed");
       throw new IAE("Cannot add row[%s] because it is below the minTimestamp[%s]", row, new DateTime(minTimestamp));
     }
 

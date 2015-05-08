@@ -235,7 +235,7 @@ public class YeOldePlumberSchool implements PlumberSchool
 			@Override
       public void persist(Committer commitRunnable)
       {
-	      // TODO Auto-generated method stub
+	      persist((Runnable)commitRunnable);
 	      
       }
     };
