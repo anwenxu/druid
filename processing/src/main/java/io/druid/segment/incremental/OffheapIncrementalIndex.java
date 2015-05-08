@@ -20,14 +20,12 @@ package io.druid.segment.incremental;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.metamx.common.ISE;
-
 import io.druid.collections.ResourceHolder;
 import io.druid.collections.StupidPool;
 import io.druid.data.input.InputRow;
 import io.druid.granularity.QueryGranularity;
 import io.druid.query.aggregation.AggregatorFactory;
 import io.druid.query.aggregation.BufferAggregator;
-
 import org.mapdb.BTreeKeySerializer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;

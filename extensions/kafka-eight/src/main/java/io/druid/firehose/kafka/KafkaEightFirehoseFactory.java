@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.metamx.common.logger.Logger;
-
 import io.druid.data.input.ByteBufferInputRowParser;
 import io.druid.data.input.Firehose;
 import io.druid.data.input.FirehoseFactory;
@@ -66,7 +65,6 @@ public class KafkaEightFirehoseFactory implements FirehoseFactory<ByteBufferInpu
   @Override
   public Firehose connect(final ByteBufferInputRowParser firehoseParser) throws IOException
   {
-  	log.info("DELETE connecting Firehose V1");
     Set<String> newDimExclus = Sets.union(
         firehoseParser.getParseSpec().getDimensionsSpec().getDimensionExclusions(),
         Sets.newHashSet("feed")

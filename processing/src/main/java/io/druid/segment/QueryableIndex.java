@@ -18,13 +18,9 @@
 package io.druid.segment;
 
 import com.metamx.collections.bitmap.BitmapFactory;
-
 import io.druid.segment.data.Indexed;
-
 import org.joda.time.Interval;
-
 import java.io.IOException;
-import java.util.Map;
 
 /**
  */
