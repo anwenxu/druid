@@ -1387,9 +1387,8 @@ public class IndexMaker
         }
     );
 
-    List<String> metaDatas = new ArrayList<String>();//TODO make sure this is ideal
+    List<String> metaDatas = new ArrayList<String>();
     if (commitMetaData != null) {
-    	log.info("DELETE about to add metadata to index.drd [%s]", commitMetaData);
     	metaDatas.add(commitMetaData.toString());
     }
     GenericIndexed<String> metas = GenericIndexed.fromIterable(metaDatas, GenericIndexed.STRING_STRATEGY);

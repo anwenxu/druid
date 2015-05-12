@@ -19,51 +19,29 @@
 
 package io.druid.firehose.kafka;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.json.JSONObject;
 
 import com.metamx.common.logger.Logger;
-import com.metamx.common.parsers.ParseException;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Ints;
 
 import io.druid.data.input.ByteBufferInputRowParser;
 import io.druid.data.input.Committer;
-import io.druid.data.input.Firehose;
-import io.druid.data.input.FirehoseFactory;
 import io.druid.data.input.FirehoseFactoryV2;
 import io.druid.data.input.FirehoseV2;
 import io.druid.data.input.InputRow;
-import io.druid.data.input.impl.InputRowParser;
 import io.druid.firehose.kafka.KafkaSimpleConsumer.BytesMessageWithOffset;
 
 public class KafkaEightSimpleConsumerFirehoseFactory implements
@@ -90,14 +68,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 	private final int queueBufferLength;
 
 	private final Map<Integer, KafkaSimpleConsumer> simpleConsumerMap = new HashMap<Integer, KafkaSimpleConsumer>();
-
-	private final static int fileRetention = 5;
-
 	private final Map<Integer, Long> lastOffsetPartitions = new HashMap<Integer, Long>();
-
-	private static final String PARTITION_SEPERATOR = " ";
-	private static final String PARTITION_OFFSET_SEPERATOR = ",";
-	private static final String FILE_NAME_SEPERATOR = "_";
 
 	/*private MessageDigest md;*/
 
@@ -133,7 +104,8 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 		}
 		try {
 			JSONObject lastCommitObject = new JSONObject(lastCommit.toString());
-			Iterator<String> keysItr = lastCommitObject.keys();
+			@SuppressWarnings("unchecked")
+      Iterator<String> keysItr = lastCommitObject.keys();
 			while(keysItr.hasNext()) {
 				String key = keysItr.next();
 	         int partitionId = Integer.parseInt(key);
@@ -173,12 +145,9 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 		                                		)
 		                		)
 				);
-		final LinkedBlockingQueue<BytesMessageWithOffset> messageQueue = new LinkedBlockingQueue(
-		        queueBufferLength);
+		final LinkedBlockingQueue<BytesMessageWithOffset> messageQueue = new LinkedBlockingQueue<BytesMessageWithOffset>(queueBufferLength);
 		class partitionConsumerThread extends Thread {
 			private int partitionId;
-			private boolean stop = false;
-
 			partitionConsumerThread(int partitionId) {
 				this.partitionId = partitionId;
 			}
@@ -201,6 +170,7 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 								messageQueue.put(msgWithOffset);
 								count++;
 							}
+							log.debug("fetch [%s] msgs for partition [%s] in one time ", count, partitionId);
 						} catch (InterruptedException e) {
 							log.error("Intrerupted when fecthing data");
 							return;
@@ -217,7 +187,8 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 		//loadOffsetFromDisk();
 		loadOffsetFromPreviousMetaData(lastCommit);
 		log.info("Kicking off all consumer");
-		final Iterator<BytesMessageWithOffset> iter = messageQueue.iterator();
+		@SuppressWarnings("unused")
+    final Iterator<BytesMessageWithOffset> iter = messageQueue.iterator();
 
 		for (String partitionStr : Arrays.asList(partitionIdList.split(","))) {
 			int partition = Integer.parseInt(partitionStr);
@@ -263,16 +234,6 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 
 			@Override
 			public Committer makeCommitter() {
-				/*final java.util.Date date = new java.util.Date();
-
-				StringBuilder fileContent = new StringBuilder();
-
-				for (int partition : lastOffsetPartitions.keySet()) {
-					fileContent.append(partition
-					        + PARTITION_OFFSET_SEPERATOR
-					        + lastOffsetPartitions.get(partition)
-					        + PARTITION_SEPERATOR);
-				}*/
 
 				Object thisCommit = new JSONObject(lastOffsetPartitions);
 
@@ -310,11 +271,5 @@ public class KafkaEightSimpleConsumerFirehoseFactory implements
 			}
 		};
 	}
-/*
-	@Override
-	public InputRowParser getParser() {
-		// TODO Auto-generated method stub
-		return parser;
-	}*/
 	
 }

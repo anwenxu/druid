@@ -814,7 +814,6 @@ public class RealtimePlumber implements Plumber
     long minTimestamp = minTimestampAsDate.getMillis();
 
     log.info("Found [%,d] segments. Attempting to hand off segments that start before [%s].", sinks.size(), minTimestampAsDate);
-//TODO for messageTime, all sinks will be rejected
     List<Map.Entry<Long, Sink>> sinksToPush = Lists.newArrayList();
     for (Map.Entry<Long, Sink> entry : sinks.entrySet()) {
       final Long intervalStart = entry.getKey();

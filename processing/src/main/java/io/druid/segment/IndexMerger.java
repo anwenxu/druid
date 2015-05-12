@@ -202,7 +202,7 @@ public class IndexMerger
   }
 
   public static File mergeQueryableIndex(
-      List<QueryableIndex> indexes, final AggregatorFactory[] metricAggs, File outDir,  IndexSpec indexSpec
+      List<QueryableIndex> indexes, final AggregatorFactory[] metricAggs, File outDir, IndexSpec indexSpec
   ) throws IOException
   {
     return mergeQueryableIndex(indexes, metricAggs, outDir, indexSpec, new BaseProgressIndicator());
